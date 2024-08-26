@@ -56,8 +56,9 @@ android {
         applicationId = "luci.sixsixsix.powerampache2"
         minSdk = 28
         targetSdk = 34
-        versionCode = 66
+        versionCode = 68
         versionName = "1.00-66"
+        versionName += "-AAOS"
         val versionQuote = "This version is powered by the number of the beast minus 600"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
