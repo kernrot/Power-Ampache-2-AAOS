@@ -23,8 +23,10 @@ package luci.sixsixsix.powerampache2.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 import luci.sixsixsix.powerampache2.BuildConfig
+import luci.sixsixsix.powerampache2.common.ALBUM_HIGHEST_FETCH_LIMIT
 import luci.sixsixsix.powerampache2.common.API_RECORD_PLAY_ENABLE
 import luci.sixsixsix.powerampache2.common.CLEAR_LIBRARY_ON_CATALOG_CLEAN
+import luci.sixsixsix.powerampache2.common.FETCH_ALBUMS_WITH_ARTISTS
 import luci.sixsixsix.powerampache2.common.FORCE_SKIP_NETWORK_ERROR
 import luci.sixsixsix.powerampache2.common.PLAYBACK_ERRORS_RETRIES
 import luci.sixsixsix.powerampache2.common.PLAYLISTS_ADMIN_FETCH
@@ -95,6 +97,10 @@ data class Pa2ConfigDto(
     val isRecordPlayApiEnabled: Boolean? = null,
     @SerializedName("forceSkipOnNetworkError")
     val forceSkipOnNetworkError: Boolean? = null,
+    @SerializedName("fetchAlbumsWithArtist")
+    val fetchAlbumsWithArtist: Boolean? = null,
+    @SerializedName("albumHighestFetchLimit")
+    val albumHighestFetchLimit: Int? = null
 )
 
 fun Pa2ConfigDto.toPa2Config() = Pa2Config(
@@ -119,5 +125,7 @@ fun Pa2ConfigDto.toPa2Config() = Pa2Config(
     introMessage = introMessage ?: "",
     isDownloadsSdCardOptionEnabled = isDownloadsSdCardOptionEnabled ?: SETTINGS_IS_DOWNLOAD_SDCARD,
     isRecordPlayApiEnabled = isRecordPlayApiEnabled ?: API_RECORD_PLAY_ENABLE,
-    forceSkipOnNetworkError = forceSkipOnNetworkError ?: FORCE_SKIP_NETWORK_ERROR
+    forceSkipOnNetworkError = forceSkipOnNetworkError ?: FORCE_SKIP_NETWORK_ERROR,
+    fetchAlbumsWithArtist = fetchAlbumsWithArtist ?: FETCH_ALBUMS_WITH_ARTISTS,
+    albumHighestFetchLimit= albumHighestFetchLimit ?: ALBUM_HIGHEST_FETCH_LIMIT
 )

@@ -21,7 +21,6 @@
  */
 package luci.sixsixsix.powerampache2.presentation.screens_detail.song_detail.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
@@ -56,7 +55,6 @@ import luci.sixsixsix.powerampache2.presentation.common.TopBarCircularProgress
 import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainEvent
 import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainViewModel
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongDetailTopBar(
     modifier: Modifier = Modifier,
@@ -96,11 +94,11 @@ fun SongDetailTopBar(
                 maxLines = 1,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier
-                .width(dimensionResource(R.dimen.songItem_infoTextSection_spacer)))
+            Spacer(modifier = Modifier.width(dimensionResource(R.dimen.songItem_infoTextSection_spacer)))
+            val albumYear = "${currentSongState?.album?.name ?: Constants.ERROR_TITLE} (${currentSongState?.year ?: ""})"
             Text(
                 modifier = Modifier.basicMarquee(),
-                text = currentSongState?.artist?.name ?: Constants.ERROR_TITLE,
+                text = albumYear,
                 fontWeight = FontWeight.Normal,
                 fontSize = 14.sp,
                 maxLines = 1,
