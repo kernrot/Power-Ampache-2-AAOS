@@ -27,7 +27,11 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
+import luci.sixsixsix.powerampache2.common.Constants
 import luci.sixsixsix.powerampache2.data.local.entities.AlbumEntity
 import luci.sixsixsix.powerampache2.data.local.entities.ArtistEntity
 import luci.sixsixsix.powerampache2.data.local.entities.CREDENTIALS_PRIMARY_KEY
@@ -46,6 +50,8 @@ import luci.sixsixsix.powerampache2.data.local.entities.SessionEntity
 import luci.sixsixsix.powerampache2.data.local.entities.SongEntity
 import luci.sixsixsix.powerampache2.data.local.entities.UserEntity
 import luci.sixsixsix.powerampache2.data.local.models.SongUrl
+import luci.sixsixsix.powerampache2.domain.models.AlbumSortOrder
+import luci.sixsixsix.powerampache2.domain.models.SortOrder
 
 private const val multiUserCondition = " LOWER(multiUserId) == LOWER((SELECT multiUserId FROM credentialsentity WHERE primaryKey == '$CREDENTIALS_PRIMARY_KEY')) "
 
@@ -108,6 +114,9 @@ interface MusicDao {
 
     @Query("DELETE FROM albumentity WHERE LOWER(id) == LOWER(:albumId) AND $multiUserCondition")
     suspend fun deleteAlbum(albumId: String)
+
+    @RawQuery(observedEntities = [AlbumEntity::class])
+    fun getAlbums(query: SupportSQLiteQuery): List<AlbumEntity>
 
     @Query("""SELECT * FROM albumentity WHERE 
         (LOWER(name) LIKE '%' || LOWER(:query) || '%' OR LOWER(:query) == name OR LOWER(artistName) LIKE '%' || LOWER(:query) || '%' OR LOWER(:query) == LOWER(artistName))
@@ -181,15 +190,16 @@ interface MusicDao {
             order by (LOWER(title) LIKE '%' || LOWER(:query) || '%') DESC, flag DESC, rating DESC, playCount DESC LIMIT 666""")
     suspend fun searchSong(query: String): List<SongEntity>
 
-    @Query("""SELECT * FROM songentity WHERE playCount > 0 AND $multiUserCondition order by playCount DESC, flag DESC, rating DESC""")
-    suspend fun getMostPlayedSongs(): List<SongEntity>
+    @Query("""SELECT * FROM songentity WHERE playCount > 0 AND $multiUserCondition order by playCount DESC, flag DESC, rating DESC LIMIT :limit""")
+    suspend fun getMostPlayedSongs(limit: Int = Constants.config.songsFrequentFetchLimit): List<SongEntity>
 
     @Query("""SELECT history.*, song.* FROM historyentity as history, SongEntity as song 
             WHERE LOWER(history.multiUserId) == LOWER((SELECT multiUserId FROM credentialsentity WHERE primaryKey == '$CREDENTIALS_PRIMARY_KEY')) 
             AND song.mediaId == history.mediaId
             GROUP BY song.mediaId
-            ORDER BY history.playCount DESC LIMIT 666""")
-    suspend fun getMostPlayedSongsLocal(): List<SongEntity>
+            ORDER BY history.playCount DESC 
+            LIMIT :limit""")
+    suspend fun getMostPlayedSongsLocal(limit: Int = Constants.config.songsFrequentFetchLimit): List<SongEntity>
 
     @Query("""SELECT * FROM songentity WHERE LOWER(:songId) == LOWER(mediaId)""")
     suspend fun getSongById(songId: String): SongEntity?
@@ -468,32 +478,36 @@ interface MusicDao {
             WHERE LOWER(history.multiUserId) == LOWER((SELECT multiUserId FROM credentialsentity WHERE primaryKey == 'power-ampache-2-credentials')) 
             AND song.mediaId == history.mediaId
             GROUP BY history.mediaId
-            ORDER BY lastPlayed DESC LIMIT 666""")
-    suspend fun getSongHistory(): List<SongEntity>
+            ORDER BY lastPlayed DESC LIMIT :limit""")
+    suspend fun getSongHistory(limit: Int = Constants.config.songsRecentFetchLimit): List<SongEntity>
 
     @Query("""SELECT history.*, song.* FROM historyentity as history, songentity as song 
             WHERE LOWER(history.multiUserId) == LOWER((SELECT multiUserId FROM credentialsentity WHERE primaryKey == 'power-ampache-2-credentials')) 
             AND song.mediaId == history.mediaId
             GROUP BY history.mediaId
-            ORDER BY lastPlayed DESC LIMIT 666""")
-    fun getSongHistoryFlow(): Flow<List<SongEntity>>
+            ORDER BY lastPlayed DESC LIMIT :limit""")
+    fun getSongHistoryFlow(limit: Int = Constants.config.songsRecentFetchLimit): Flow<List<SongEntity>>
 
     @Query("""SELECT history.*, song.* FROM historyentity as history, downloadedsongentity as song 
             WHERE LOWER(history.multiUserId) == LOWER((SELECT multiUserId FROM credentialsentity WHERE primaryKey == 'power-ampache-2-credentials')) 
             AND song.mediaId == history.mediaId
             GROUP BY history.mediaId
-            ORDER BY lastPlayed DESC LIMIT 666""")
-    suspend fun getOfflineSongHistory(): List<DownloadedSongEntity>
+            ORDER BY lastPlayed DESC LIMIT :limit""")
+    suspend fun getOfflineSongHistory(limit: Int = Constants.config.songsRecentFetchLimit): List<DownloadedSongEntity>
 
     @Query("""SELECT history.*, song.* FROM historyentity as history, downloadedsongentity as song 
             WHERE LOWER(history.multiUserId) == LOWER((SELECT multiUserId FROM credentialsentity WHERE primaryKey == 'power-ampache-2-credentials')) 
             AND song.mediaId == history.mediaId
             GROUP BY history.mediaId
-            ORDER BY lastPlayed DESC LIMIT 666""")
-    fun getOfflineSongHistoryFlow(): Flow<List<DownloadedSongEntity>>
+            ORDER BY lastPlayed DESC LIMIT :limit""")
+    fun getOfflineSongHistoryFlow(limit: Int = Constants.config.songsRecentFetchLimit): Flow<List<DownloadedSongEntity>>
 
     @Query("DELETE FROM historyentity")
     suspend fun clearHistory()
+
+    fun getAlbumsSortedQuery(column: AlbumSortOrder, order: SortOrder) =
+        SimpleSQLiteQuery("SELECT * FROM album ORDER BY ${column.columnName} ${order.order}")
+
 
     suspend fun clearCachedData() {
         clearAlbums()

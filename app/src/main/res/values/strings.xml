@@ -48,6 +48,7 @@
 
     <!-- ERROR messages-->
     <string name="error_io_exception">Cannot load data, are you connected to the internet?\nIf the problem persist try to kill and reopen the app</string>
+    <string name="error_cannotEditPreference">Cannot Edit Preference</string>
     <string name="error_http_exception">Cannot load data, are you connected to the internet?\nIf the problem persist try to kill and reopen the app</string>
     <string name="error_empty_result">No results to display, or you are trying to add or remove something not found on the server</string>
     <string name="error_duplicate">Duplicate Entry</string>
@@ -101,6 +102,9 @@
     <string name="settings_deleteDownloads_success">All your offline music has been deleted</string>
     <string name="settings_deleteDownloads_fail">There was an issue deleting your offline music, if the problem persists please contact the developer to fix the bug</string>
     <string name="settings_hideDonationButtonsMenu_title">Hide Donation Buttons on Menu</string>
+    <string name="settings_ampachePreferences_title">Ampache Preferences</string>
+    <string name="settings_ampachePreferences_subtitle">Preferences for your Ampache Server</string>
+
     <string name="settings_serverInfo_title">Server</string>
     <string name="settings_serverInfo_version">Version</string>
     <string name="settings_serverInfo_compatible">Compatible</string>
@@ -220,8 +224,17 @@
     <string name="nextcloud_not_implemented">Not implemented yet in Nextcloud Music</string>
     <string name="share_export_song">Export Song</string>
     <string name="share_open_link_browser">Open Link In Browser</string>
-    <string name="about_patreon_title">Become a Patreon or Buy me a coffee</string>
+    <string name="about_support_title">Support</string>
+    <string name="about_links_title">Links</string>
 
+    <!-- do not translate, this is a reference -->
+    <string name="bmac_contentDescription" translatable="false">@string/bmac_btn_text</string>
+    <string name="patreon_contentDescription" translatable="false">Patreon</string>
+    <string name="about_telegram" translatable="false">Telegram</string>
+    <string name="about_mastodon" translatable="false">Mastodon</string>
+    <string name="about_github" translatable="false">Github</string>
+    <string name="telegram_contentDescription" translatable="false">@string/about_telegram</string>
+    <string name="mastodon_contentDescription" translatable="false">@string/about_mastodon</string>
 
     <!-- "Donate" will be followed by Paypal or Bitcoin. ie "Donate Bitcoin" -->
     <string name="donate_btn_text">Donate</string>
@@ -230,4 +243,17 @@
     <string name="paypal_btn_contentDescription">Donate Paypal</string>
     <string name="bmac_btn_text">Buy Me A Coffee</string>
 
+    <string name="ampachePreferences_screen_title">Ampache Preferences</string>
+    <string name="ampachePreferences_screen_undo_btn_title">Undo</string>
+    <string name="ampachePreferences_systemPreferences_title">System</string>
+    <string name="ampachePreferences_userPreferences_title">User</string>
+    <string name="ampachePreferences_updated_toast">Preference Updated</string>
+
+    <string name="albums_sortOrder_name">Name</string>
+    <string name="albums_sortOrder_year">Year</string>
+    <string name="albums_sortOrder_artist">Artist</string>
+    <string name="albums_sortOrder_rating">Rating</string>
+    <string name="albums_sortOrder_averageRating">Average Rating</string>
+
+    <string name="albums_emptyView_warning">No Albums to Show</string>
 </resources>

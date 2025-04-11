@@ -61,9 +61,9 @@ android {
         applicationId = "luci.sixsixsix.powerampache2"
         minSdk = 28
         targetSdk = 35
-        versionCode = 77
-        versionName = "1.01-77"
-        val versionQuote = "This version is powered by a globular cluster in the constellation Sagittarius and Rhenium . ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}"
+        versionCode = 79
+        versionName = "1.01-79"
+        val versionQuote = "This version is powered by gold, Fibonacci and Vesuvius"
 
         // for the AAOS-Fork
         versionCode = versionCode!! + 10000
@@ -97,7 +97,10 @@ android {
         buildConfigField("boolean", "PLAYLISTS_ADMIN_FETCH", "false")
         buildConfigField("boolean", "SMARTLISTS_ADMIN_FETCH", "false")
         buildConfigField("boolean", "PLAYLISTS_ALL_SERVER_FETCH", "true")
+        buildConfigField("boolean", "USE_INCREMENTAL_LIMIT_ALBUMS", "true")
 
+        // set to false for flavours that implement a data layer different that Ampache
+        buildConfigField("boolean", "IS_AMPACHE_DATA", "true")
 
         buildConfigField("String", "REMOTE_CONFIG_FILE", "\"config.json\"")
     }
@@ -224,6 +227,7 @@ android {
             buildConfigField("boolean", "SMARTLISTS_USER_FETCH", "true")
             buildConfigField("boolean", "PLAYLISTS_ADMIN_FETCH", "true")
             buildConfigField("boolean", "SMARTLISTS_ADMIN_FETCH", "true")
+            buildConfigField("boolean", "USE_INCREMENTAL_LIMIT_ALBUMS", "false")
         }
     }
 
