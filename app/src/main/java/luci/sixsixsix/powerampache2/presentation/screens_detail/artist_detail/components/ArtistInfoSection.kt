@@ -62,6 +62,7 @@ fun ArtistInfoSection(
     isPlayLoading: Boolean,
     isPlaylistEditLoading: Boolean,
     isGlobalShuffleOn: Boolean,
+    isDownloading: Boolean,
     eventListener: (albumInfoViewEvents: ArtistInfoEvent) -> Unit
 ) {
     Column(modifier = modifier) {
@@ -104,6 +105,7 @@ fun ArtistInfoSection(
 
         Spacer(modifier = Modifier.height(12.dp))
         if (!artist.summary.isNullOrBlank()) {
+            val artistSummary = artist.summary ?: ""
             Text( // name
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,7 +113,7 @@ fun ArtistInfoSection(
                     .clickable {
                         summaryOpen.value = !summaryOpen.value
                     },
-                text = artist.summary,
+                text = artistSummary,
                 fontWeight = FontWeight.Normal,
                 fontSize = 15.sp,
                 maxLines = if (summaryOpen.value) { 150 } else { 5 },
@@ -124,6 +126,7 @@ fun ArtistInfoSection(
             isPlayLoading = isPlayLoading,
             isBuffering = isBuffering,
             isGlobalShuffleOn = isGlobalShuffleOn,
+            isDownloading = isDownloading,
             modifier = Modifier.fillMaxWidth(),
             eventListener
         )
@@ -143,6 +146,7 @@ fun ArtistInfoSectionPreview() {
         isPlayLoading = false,
         isPlaylistEditLoading = false,
         isGlobalShuffleOn = true,
+        isDownloading = true,
         summaryOpen = remember { mutableStateOf(true) }
     )
 }

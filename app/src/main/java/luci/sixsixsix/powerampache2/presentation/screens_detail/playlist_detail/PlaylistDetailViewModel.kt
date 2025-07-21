@@ -21,17 +21,16 @@
  */
 package luci.sixsixsix.powerampache2.presentation.screens_detail.playlist_detail
 
-import android.app.Application
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.asFlow
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -47,9 +46,7 @@ import luci.sixsixsix.mrlog.L
 import luci.sixsixsix.powerampache2.R
 import luci.sixsixsix.powerampache2.common.Resource
 import luci.sixsixsix.powerampache2.common.shareLink
-import luci.sixsixsix.powerampache2.domain.MusicRepository
 import luci.sixsixsix.powerampache2.domain.PlaylistsRepository
-import luci.sixsixsix.powerampache2.domain.SettingsRepository
 import luci.sixsixsix.powerampache2.domain.SongsRepository
 import luci.sixsixsix.powerampache2.domain.models.FlaggedPlaylist
 import luci.sixsixsix.powerampache2.domain.models.FrequentPlaylist
@@ -58,22 +55,33 @@ import luci.sixsixsix.powerampache2.domain.models.Playlist
 import luci.sixsixsix.powerampache2.domain.models.PlaylistType
 import luci.sixsixsix.powerampache2.domain.models.RecentPlaylist
 import luci.sixsixsix.powerampache2.domain.models.Song
-import luci.sixsixsix.powerampache2.domain.models.SortMode
+import luci.sixsixsix.powerampache2.domain.models.settings.SortMode
+import luci.sixsixsix.powerampache2.domain.usecase.UserFlowUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.playlists.PlaylistFlow
+import luci.sixsixsix.powerampache2.domain.usecase.playlists.SongsFromPlaylistUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.settings.ChangeSortModeUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.settings.LocalSettingsFlowUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.settings.ToggleGlobalShuffleUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.songs.IsSongAvailableOfflineUseCase
 import luci.sixsixsix.powerampache2.player.MusicPlaylistManager
 import luci.sixsixsix.powerampache2.presentation.common.songitem.SongWrapper
 import javax.inject.Inject
 
 @HiltViewModel
-@OptIn(ExperimentalCoroutinesApi::class)
 class PlaylistDetailViewModel @Inject constructor(
-    private val application: Application,
+    @ApplicationContext private val application: Context,
     private val savedStateHandle: SavedStateHandle,
+    private val toggleGlobalShuffle: ToggleGlobalShuffleUseCase,
+    localSettingsFlowUseCase: LocalSettingsFlowUseCase,
+    playlistFlow: PlaylistFlow,
+    private val isSongAvailableOfflineUseCase: IsSongAvailableOfflineUseCase,
     private val songsRepository: SongsRepository,
-    private val musicRepository: MusicRepository,
     private val playlistsRepository: PlaylistsRepository,
-    private val settingsRepository: SettingsRepository,
-    private val playlistManager: MusicPlaylistManager
-) : AndroidViewModel(application = application) {
+    private val songsFromPlaylistUseCase: SongsFromPlaylistUseCase,
+    private val changeSortModeUseCase: ChangeSortModeUseCase,
+    private val playlistManager: MusicPlaylistManager,
+    userFlowUseCase: UserFlowUseCase
+) : ViewModel() {
     var state by mutableStateOf(PlaylistDetailState())
     var editState by mutableStateOf(PlaylistEditState(listOf()))
 
@@ -87,7 +95,7 @@ class PlaylistDetailViewModel @Inject constructor(
             .map { playlist ->
                 fetchPlaylistSongs(playlist)
                 playlist
-            }.combine(musicRepository.userLiveData.filterNotNull().distinctUntilChanged()) { playlist, user ->
+            }.combine(userFlowUseCase().filterNotNull().distinctUntilChanged()) { playlist, user ->
                 state = state.copy(
                     isNotStatPlaylist = PlaylistDetailState.isNotStatPlaylist(playlist),
                     isGeneratedOrSmartPlaylist = PlaylistDetailState.isGeneratedOrSmartPlaylist(playlist),
@@ -96,7 +104,7 @@ class PlaylistDetailViewModel @Inject constructor(
                 playlist
             }.flatMapConcat { playlist ->
                 if (PlaylistDetailState.isNotStatPlaylist(playlist)) {
-                    playlistsRepository.getPlaylist(playlist.id)
+                    playlistFlow(playlist.id)
                 } else {
                     flow { emit(playlist) }
                 }
@@ -104,17 +112,15 @@ class PlaylistDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            settingsRepository.settingsLiveData.asFlow().collectLatest {
-                it?.let { settings ->
-                    if (settings.playlistSongsSorting != state.sortMode) {
-                        L("found a different sort mode", settings.playlistSongsSorting)
-                        // when getting a different sort mode, invert the list
-                        state = state.copy(sortMode = settings.playlistSongsSorting, songs = state.songs.reversed())
-                    }
+            localSettingsFlowUseCase().collectLatest { settings ->
+                if (settings.playlistSongsSorting != state.sortMode) {
+                    L("found a different sort mode", settings.playlistSongsSorting)
+                    // when getting a different sort mode, invert the list
+                    state = state.copy(sortMode = settings.playlistSongsSorting, songs = state.songs.reversed())
+                }
 
-                    if (settings.isGlobalShuffleEnabled != state.isGlobalShuffleOn) {
-                        state = state.copy(isGlobalShuffleOn = settings.isGlobalShuffleEnabled)
-                    }
+                if (settings.isGlobalShuffleEnabled != state.isGlobalShuffleOn) {
+                    state = state.copy(isGlobalShuffleOn = settings.isGlobalShuffleEnabled)
                 }
             }
         }
@@ -126,7 +132,7 @@ class PlaylistDetailViewModel @Inject constructor(
             is RecentPlaylist -> getRecentSongs(fetchRemote = true)
             is FlaggedPlaylist -> getFlaggedSongs(fetchRemote = true)
             is FrequentPlaylist -> getFrequentSongs(fetchRemote = true)
-            else -> getSongsFromPlaylist(playlistId = playlist.id, fetchRemote = true)
+            else -> getSongsFromPlaylist(playlistId = playlist, fetchRemote = true)
         }
     }
 
@@ -145,7 +151,7 @@ class PlaylistDetailViewModel @Inject constructor(
             PlaylistDetailEvent.OnToggleSort -> viewModelScope.launch {
                 if (state.isNotStatPlaylist) {
                     // if not a stat playlist change global sort
-                    settingsRepository.changeSortMode( if (state.sortMode == SortMode.ASC) SortMode.DESC else SortMode.ASC )
+                    changeSortModeUseCase( if (state.sortMode == SortMode.ASC) SortMode.DESC else SortMode.ASC )
                 } else {
                     // otherwise just reverse
                     state = state.copy(songs = state.songs.reversed())
@@ -153,7 +159,7 @@ class PlaylistDetailViewModel @Inject constructor(
             }
             PlaylistDetailEvent.OnShufflePlaylistToggle -> viewModelScope.launch {
                 try {
-                    state = state.copy(isGlobalShuffleOn = settingsRepository.toggleGlobalShuffle())
+                    state = state.copy(isGlobalShuffleOn = toggleGlobalShuffle())
                 } catch (e: Exception) {
                     playlistManager.updateErrorLogMessage(e.stackTraceToString())
                 }
@@ -197,7 +203,7 @@ class PlaylistDetailViewModel @Inject constructor(
                 editPlaylist(newList = newList)
             }
             is PlaylistDetailsEditEvent.OnRemoveSong ->
-                removeSongFromPlaylist(playlistId = playlistStateFlow.value.id, songId = event.song.mediaId)
+                removeSongFromPlaylist(playlist = playlistStateFlow.value, songId = event.song.mediaId)
             PlaylistDetailsEditEvent.OnRemoveSongDismiss -> { }
             is PlaylistDetailsEditEvent.OnSongSelected -> {
                 editState = editState.copy(selectedSongs = editState.selectedSongs.toMutableList().apply {
@@ -255,10 +261,9 @@ class PlaylistDetailViewModel @Inject constructor(
         } else Pair("", "")
 
 
-    private fun getSongsFromPlaylist(playlistId: String, fetchRemote: Boolean = true) {
+    private fun getSongsFromPlaylist(playlistId: Playlist, fetchRemote: Boolean = true) {
         viewModelScope.launch {
-            playlistsRepository
-                .getSongsFromPlaylist(playlistId, fetchRemote)
+            songsFromPlaylistUseCase(playlistId, fetchRemote)
                 .collect { result ->
                     when(result) {
                         is Resource.Success -> {
@@ -268,7 +273,7 @@ class PlaylistDetailViewModel @Inject constructor(
                                     songWrapperList.add(
                                         SongWrapper(
                                         song = song,
-                                        isOffline = songsRepository.isSongAvailableOffline(song)
+                                        isOffline = isSongAvailableOfflineUseCase(song)
                                     )
                                     )
                                 }
@@ -303,7 +308,7 @@ class PlaylistDetailViewModel @Inject constructor(
                     is Resource.Success -> {
                         result.data?.let {
                             // fetch songs without network request
-                            getSongsFromPlaylist(playlist.id, false)
+                            getSongsFromPlaylist(playlist, false)
                         }
                     }
                     is Resource.Error ->
@@ -314,13 +319,13 @@ class PlaylistDetailViewModel @Inject constructor(
             }
     }
 
-    private fun removeSongFromPlaylist(playlistId: String, songId: String) = viewModelScope.launch {
+    private fun removeSongFromPlaylist(playlist: Playlist, songId: String) = viewModelScope.launch {
         playlistsRepository
-            .removeSongFromPlaylist(playlistId = playlistId, songId = songId).collect { result ->
+            .removeSongFromPlaylist(playlistId = playlist.id, songId = songId).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         result.data?.let {
-                            getSongsFromPlaylist(playlistId, true)
+                            getSongsFromPlaylist(playlist, true)
                         }
                     }
                     is Resource.Error ->
@@ -340,7 +345,7 @@ class PlaylistDetailViewModel @Inject constructor(
                         songs.forEach { song ->
                             songWrapperList.add(
                                 SongWrapper(song = song,
-                                isOffline = songsRepository.isSongAvailableOffline(song))
+                                isOffline = isSongAvailableOfflineUseCase(song))
                             )
                         }
                         state = state.copy(songs = songWrapperList)
@@ -372,7 +377,7 @@ class PlaylistDetailViewModel @Inject constructor(
                                     songWrapperList.add(
                                         SongWrapper(
                                             song = song,
-                                            isOffline = songsRepository.isSongAvailableOffline(song)
+                                            isOffline = isSongAvailableOfflineUseCase(song)
                                         )
                                     )
                                 }
@@ -406,7 +411,7 @@ class PlaylistDetailViewModel @Inject constructor(
                                     songWrapperList.add(
                                         SongWrapper(
                                             song = song,
-                                            isOffline = songsRepository.isSongAvailableOffline(song = song)
+                                            isOffline = isSongAvailableOfflineUseCase(song = song)
                                         )
                                     )
                                 }
@@ -440,7 +445,7 @@ class PlaylistDetailViewModel @Inject constructor(
                                     songWrapperList.add(
                                         SongWrapper(
                                             song = song,
-                                            isOffline = songsRepository.isSongAvailableOffline(song)
+                                            isOffline = isSongAvailableOfflineUseCase(song)
                                         )
                                     )
                                 }

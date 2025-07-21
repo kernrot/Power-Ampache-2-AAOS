@@ -24,11 +24,11 @@ package luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import luci.sixsixsix.powerampache2.common.Constants
+import luci.sixsixsix.powerampache2.domain.common.Constants
 
 fun MainViewModel.observeSession() {
     viewModelScope.launch {
-        musicRepository.sessionLiveData.distinctUntilChanged().collect {
+        sessionFlowUseCase().distinctUntilChanged().collect {
             synchronized(mainLock) {
                 val oldToken = authToken
                 authToken = it?.auth ?: ""

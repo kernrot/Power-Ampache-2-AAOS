@@ -21,13 +21,14 @@
  */
 package luci.sixsixsix.powerampache2.presentation.screens.settings
 
-import luci.sixsixsix.powerampache2.domain.models.PowerAmpTheme
-import luci.sixsixsix.powerampache2.domain.models.StreamingQuality
+import luci.sixsixsix.powerampache2.domain.models.settings.PowerAmpTheme
+import luci.sixsixsix.powerampache2.domain.models.settings.StreamingQuality
 
 sealed class SettingsEvent {
     data class OnEnableRemoteLoggingSwitch(val newValue: Boolean): SettingsEvent()
     data class OnHideDonationButtonSwitch(val newValue: Boolean): SettingsEvent()
     data class OnMonoValueChange(val isMono: Boolean): SettingsEvent()
+    data class OnDownloadAfterPlayChange(val isDownload: Boolean): SettingsEvent()
     data object OnOfflineToggle: SettingsEvent()
     data class OnDownloadsSdCardValueChange(val isDownloadsSdCard: Boolean): SettingsEvent()
     data object GoToWebsite: SettingsEvent()
@@ -38,4 +39,5 @@ sealed class SettingsEvent {
     data object DeleteDownloads: SettingsEvent()
     data class OnStreamingQualityChange(val newValue: StreamingQuality): SettingsEvent()
     data class OnThemeChange(val newValue: PowerAmpTheme): SettingsEvent()
+    data class OnDownloadFavouriteAfterPlayChange(val isDownloadFavourite: Boolean): SettingsEvent()
 }

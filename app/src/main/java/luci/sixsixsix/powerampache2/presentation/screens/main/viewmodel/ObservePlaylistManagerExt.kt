@@ -21,20 +21,24 @@
  */
 package luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel
 
+import androidx.annotation.OptIn
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import luci.sixsixsix.mrlog.L
 import luci.sixsixsix.powerampache2.R
 
+@OptIn(UnstableApi::class)
 fun MainViewModel.observePlaylistManager() {
 
     // listen to current-song changes
     viewModelScope.launch {
-        playlistManager.currentSongState.collectLatest { songState ->
-            songState?.let { songState ->
+        playlistManager.currentSongState.collectLatest {
+            it?.let { songState ->
                 startMusicServiceIfNecessary()
                 scrobble(songState)
+                downloadAfterPlayback(songState)
             } ?: stopMusicService()
         }
     }
@@ -43,7 +47,7 @@ fun MainViewModel.observePlaylistManager() {
         playlistManager.logMessageUserReadableState.collectLatest { logMessageState ->
             logMessageState.logMessage?.let { logMessage ->
                 // do not show errors in offline mode unless in cases specified above
-                val isOfflineModeEnabled = settingsRepository.isOfflineModeEnabled()
+                val isOfflineModeEnabled = isOfflineModeEnabledUseCase()
                 if (!isOfflineModeEnabled) {
                     state = state.copy(errorMessage = logMessage)
                 } else if (logMessage == weakContext.get()?.resources?.getString(R.string.logout_offline_warning)) {
