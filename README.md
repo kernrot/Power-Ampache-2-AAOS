@@ -1,6 +1,11 @@
 <div align="center">
-<h1> Power Ampache 2 </h1>
-    <img width="350" height="350" style="display: block; border: 0px solid #f5f5f5; border-radius: 9999px;" src="https://github.com/icefields/Power-Ampache-2/assets/149625124/7614a6a7-898b-4a8c-b891-9a07505529be">
+<h1> Power Ampache 2 - Fork for AAOS Android Automotive Platform</h1>
+
+  <p>
+  Fork of the popular ampache app (<a href="https://github.com/icefields/Power-Ampache-2/">icefields/Power-Ampache-2</a>) <br />
+  for the Android Automotive OS Platform - mainly used in Volvo/Polestar InCarInfotaiment 
+  </p>
+
 </div>
 
 <br>
