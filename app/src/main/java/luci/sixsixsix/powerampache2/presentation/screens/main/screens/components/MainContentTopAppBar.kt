@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationImportant
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import luci.sixsixsix.powerampache2.R
 import luci.sixsixsix.powerampache2.presentation.common.CircleBackButton
+import luci.sixsixsix.powerampache2.presentation.dialogs.AddToPlaylistOrQueueDialogOpen
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +79,7 @@ fun MainContentTopAppBar(
     isFabLoading: Boolean,
     isGenreSubScreen: Boolean,
     isChromecastPluginInstalled: Boolean,
+    showAddToPlaylistBtn: Boolean,
     floatingActionVisible: Boolean,
     onGenreScreenBackClick: () -> Unit,
     onMagicPlayClick: () -> Unit,
@@ -170,8 +173,7 @@ fun MainContentTopAppBar(
                     }) {
                     Icon(
                         imageVector = Icons.Default.NotificationImportant,
-                        contentDescription = "Notifications",
-                        //tint = MaterialTheme.colorScheme.primary
+                        contentDescription = "Notifications"
                     )
                 }
             }
@@ -182,9 +184,20 @@ fun MainContentTopAppBar(
                 }) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    //tint = MaterialTheme.colorScheme.primary
+                    contentDescription = "Search"
                 )
+            }
+
+            AnimatedVisibility(showAddToPlaylistBtn) {
+                IconButton(
+                    onClick = {
+                        onNavigationIconClick(MainContentTopAppBarEvent.OnAddToPlaylistClick)
+                    }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                        contentDescription = "add all songs in queue to playlist"
+                    )
+                }
             }
 
             AnimatedVisibility(!isQueueEmpty) {
@@ -214,16 +227,9 @@ fun MainContentTopAppBar(
                             onMagicPlayClick()
                         },
                         painter = painterResource(id = R.drawable.ic_play_speaker),
-                        contentDescription = "Quick Play",
-                       // tint = MaterialTheme.colorScheme.tertiary
+                        contentDescription = "Spin It!"
                     )
                 }
-//                IconButton(onClick = onMagicPlayClick) {
-//                    Icon(
-//                        painterResource(id = R.drawable.ic_play_speaker),
-//                        contentDescription = "Magic Play"
-//                    )
-//                }
             }
         }
     )
@@ -234,4 +240,5 @@ sealed class MainContentTopAppBarEvent {
     data object OnPlaylistIconClick: MainContentTopAppBarEvent()
     data object OnNotificationsIconClick: MainContentTopAppBarEvent()
     data object OnChromecastIconClick: MainContentTopAppBarEvent()
+    data object OnAddToPlaylistClick: MainContentTopAppBarEvent()
 }

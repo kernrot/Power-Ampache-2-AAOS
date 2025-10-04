@@ -30,6 +30,8 @@ interface SharedPreferencesManager {
     var bufferForPlaybackMs: Int
     var bufferForPlaybackAfterRebufferMs: Int
     var cacheSizeMb: Int
+    var prioritizeTimeOverSizeThresholds: Boolean
+    var targetBufferBytes: Int
 
     var isAllowAllCertificates: Boolean
     var useOkHttpForExoPlayer: Boolean

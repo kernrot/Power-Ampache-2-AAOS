@@ -55,6 +55,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,6 +75,7 @@ import luci.sixsixsix.powerampache2.presentation.common.songitem.SubtitleString
 import luci.sixsixsix.powerampache2.presentation.dialogs.AddToPlaylistOrQueueDialog
 import luci.sixsixsix.powerampache2.presentation.dialogs.AddToPlaylistOrQueueDialogOpen
 import luci.sixsixsix.powerampache2.presentation.dialogs.AddToPlaylistOrQueueDialogViewModel
+import luci.sixsixsix.powerampache2.presentation.dialogs.EraseConfirmDialog
 import luci.sixsixsix.powerampache2.presentation.dialogs.info.InfoDialogAlbum
 import luci.sixsixsix.powerampache2.presentation.dialogs.ShareDialog
 import luci.sixsixsix.powerampache2.presentation.navigation.Ampache2NavGraphs
@@ -82,6 +84,7 @@ import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainView
 import luci.sixsixsix.powerampache2.presentation.screens_detail.album_detail.components.AlbumDetailTopBar
 import luci.sixsixsix.powerampache2.presentation.screens_detail.album_detail.components.AlbumInfoSection
 import luci.sixsixsix.powerampache2.presentation.screens_detail.album_detail.components.AlbumInfoViewEvents
+import luci.sixsixsix.powerampache2.presentation.screens_detail.playlist_detail.PlaylistDetailsEditEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +110,8 @@ fun AlbumDetailScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     var infoVisibility by remember { mutableStateOf(false) }
     var playlistsDialogOpen by remember { mutableStateOf(AddToPlaylistOrQueueDialogOpen(false)) }
+    var showDeleteDownloadedSongsDialog by remember { mutableStateOf(false) }
+
     var orientation by remember { mutableIntStateOf(Configuration.ORIENTATION_PORTRAIT) }
     val configuration = LocalConfiguration.current
     // If our configuration changes then this will launch a new coroutine scope for it
@@ -164,8 +169,22 @@ fun AlbumDetailScreen(
         }
     }
 
+    // album info dialog
     if (infoVisibility) {
         InfoDialogAlbum(album, pluginAlbum) { infoVisibility = false }
+    }
+
+    // Delete all downloaded songs dialog
+    if(showDeleteDownloadedSongsDialog) {
+        EraseConfirmDialog(
+            onDismissRequest = { showDeleteDownloadedSongsDialog = false },
+            onConfirmation = {
+                showDeleteDownloadedSongsDialog = false
+                mainViewModel.onEvent(MainEvent.OnDownloadedSongListDelete(songs))
+            },
+            dialogTitle = stringResource(id = R.string.warning_album_songList_remove_title),
+            dialogText = stringResource(id = R.string.warning_album_songList_remove_subtitle)
+        )
     }
 
     var imageUrl: String? by remember { mutableStateOf(null) }
@@ -294,8 +313,12 @@ fun AlbumDetailScreen(
                                 }
                                 AlbumInfoViewEvents.SHARE_ALBUM ->
                                     viewModel.onEvent(AlbumDetailEvent.OnShareAlbum)
-                                AlbumInfoViewEvents.DOWNLOAD_ALBUM ->
+                                AlbumInfoViewEvents.DOWNLOAD_ALBUM -> if (!state.isAlbumDownloaded) {
                                     mainViewModel.onEvent(MainEvent.OnDownloadSongs(songs))
+                                } else {
+                                    // if entire album is downloaded, the button will delete instead.
+                                    showDeleteDownloadedSongsDialog = true
+                                }
                                 AlbumInfoViewEvents.SHUFFLE_PLAY_ALBUM -> {
                                     viewModel.onEvent(AlbumDetailEvent.OnShufflePlaylistToggle)
                                 }

@@ -47,7 +47,7 @@ class ConfigProviderImpl: ConfigProvider {
         get() = BuildConfig.ENABLE_ERROR_LOG
 
 
-    override fun defaultPa2Config() = Pa2Config (
+    override fun defaultPa2Config() = Pa2Config(
         queueResetOnNewSession = RESET_QUEUE_ON_NEW_SESSION,
         dogmazicDemoUser = DOGMAZIC_DEMO_USER,
         forceLoginDialogsOnAllVersions = FORCE_LOGIN_DIALOG_ON_ALL_VERSIONS,

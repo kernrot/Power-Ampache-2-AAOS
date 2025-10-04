@@ -331,14 +331,31 @@ class MainViewModel @Inject constructor(
                 is Resource.Success -> {
                     result.data?.let {
                         // song deleted
-                        playlistManager.updateUserMessage("${song.name} deleted from downloads")
+                        playlistManager.updateUserMessage(weakContext.get()?.getString(R.string.downloaded_delete_snackbar_song, song.name))
                     }
                 }
-
-                is Resource.Error -> playlistManager.updateUserMessage("ERROR deleting ${song.name}")
+                is Resource.Error ->
+                    playlistManager.updateUserMessage(weakContext.get()?.getString(R.string.downloaded_delete_snackbar_song_error, song.name))
                 is Resource.Loading -> {}
             }
         }
+    }
+
+    fun deleteDownloadedSongs(songs: List<Song>) = viewModelScope.launch {
+        var count = 0
+        songs.forEach { song ->
+            songsRepository.deleteDownloadedSong(song).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        result.data?.let { ++count }
+                    }
+                    is Resource.Error ->
+                        playlistManager.updateUserMessage(weakContext.get()?.getString(R.string.downloaded_delete_snackbar_song_error, song.name))
+                    is Resource.Loading -> {}
+                }
+            }
+        }
+        playlistManager.updateUserMessage(weakContext.get()?.getString(R.string.downloaded_delete_snackbar_songs, count))
     }
 
     fun logout() {

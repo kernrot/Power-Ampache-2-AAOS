@@ -119,6 +119,9 @@ data class Pa2Config(
 
     // override the limit with the size of the local data, expensive on network on the long term
     val useIncrementalLimitForAlbums: Boolean,// = USE_INCREMENTAL_LIMIT_ALBUMS
+
+    // show a button to export the internal sqlite db
+    val showSettingsExportDbButton: Boolean = false
 )
 
 fun Pa2Config.isIntroMessageUserString() = shouldShowIntroMessage &&

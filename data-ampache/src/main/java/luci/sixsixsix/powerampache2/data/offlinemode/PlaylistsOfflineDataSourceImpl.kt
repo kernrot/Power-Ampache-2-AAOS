@@ -41,12 +41,14 @@ class PlaylistsOfflineDataSourceImpl @Inject constructor(
 ): PlaylistsOfflineDataSource {
     private val dao = db.dao
 
-    override val playlistsFlow: Flow<List<Playlist>> = dao.playlistsFlow().map { entities ->
-        entities.filter { isPlaylistOffline(it.id) }
-    }.mapNotNull { list -> list.map { it.toPlaylist() } }
+    override val playlistsFlow: Flow<List<Playlist>> = dao.playlistsOfflineFlow()
+        //.map { entities -> entities.filter { isPlaylistOffline(it.id) } }
+        .mapNotNull { list -> list.map { it.toPlaylist() } }
 
     override suspend fun getPlaylists(query: String) =
-        dao.searchPlaylists(query).filter { isPlaylistOffline(it.id) }.map { it.toPlaylist() }
+        dao.searchOfflinePlaylists(query)
+            //.filter { isPlaylistOffline(it.id) }
+            .map { it.toPlaylist() }
 
     private suspend fun isPlaylistOffline(playlistId: String) =
         dao.getOfflineSongsFromPlaylist(playlistId).isNotEmpty()

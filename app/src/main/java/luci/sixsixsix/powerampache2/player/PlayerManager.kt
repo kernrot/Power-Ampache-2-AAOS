@@ -1,8 +1,11 @@
 package luci.sixsixsix.powerampache2.player
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
@@ -13,8 +16,13 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import luci.sixsixsix.powerampache2.BuildConfig
 import luci.sixsixsix.powerampache2.domain.utils.SharedPreferencesManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,12 +56,18 @@ class PlayerManager @OptIn(UnstableApi::class)
         .setAudioAttributes(audioAttributes, true)
         .setHandleAudioBecomingNoisy(true)
         .setTrackSelector(DefaultTrackSelector(context))
-        .setRenderersFactory(DefaultRenderersFactory(context).setEnableDecoderFallback(true))
+        .setRenderersFactory(
+            DefaultRenderersFactory(context)
+                // make software decoding switchable? (also uncomment ffmpeg in gradle)
+//                .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+//                .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
+                .setEnableDecoderFallback(true)
+        )
         .setLoadControl(
             DefaultLoadControl.Builder()
-                .setPrioritizeTimeOverSizeThresholds(true)
+                .setPrioritizeTimeOverSizeThresholds(sharedPreferencesManager.prioritizeTimeOverSizeThresholds)
                 .setBackBuffer(sharedPreferencesManager.backBuffer, true)  // Retain back buffer data only up to the last keyframe (not very impactful for audio)
-                //.setTargetBufferBytes(20 * 1024 * 1024)
+                .setTargetBufferBytes(sharedPreferencesManager.targetBufferBytes)
                 .setBufferDurationsMs(
                     sharedPreferencesManager.minBufferMs,
                     sharedPreferencesManager.maxBufferMs,
@@ -73,6 +87,24 @@ class PlayerManager @OptIn(UnstableApi::class)
             )
         )
         .build()
+//        .also { pla ->
+//            if (BuildConfig.DEBUG) {
+//                pla.addListener(object : Player.Listener {
+//                    var job: Job? = null
+//                    override fun onPlaybackStateChanged(state: Int) {
+//                        job?.cancel()
+//                        job = GlobalScope.launch {
+//                            while(true) {
+//                                Handler(Looper.getMainLooper()).post {
+//                                    println("aaaa ExoPlayer " + "Buffered: ${_player?.totalBufferedDuration} ms, Percent: ${_player?.bufferedPercentage}, BufferedPosition: ${_player?.bufferedPosition}")
+//                                }
+//                                delay(6666)
+//                            }
+//                        }
+//                    }
+//                })
+//            }
+//        }
 
     fun releasePlayer() {
         _player?.release()

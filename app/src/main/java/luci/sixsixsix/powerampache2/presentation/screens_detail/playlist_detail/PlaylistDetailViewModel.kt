@@ -35,7 +35,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
@@ -55,6 +58,7 @@ import luci.sixsixsix.powerampache2.domain.models.Playlist
 import luci.sixsixsix.powerampache2.domain.models.PlaylistType
 import luci.sixsixsix.powerampache2.domain.models.RecentPlaylist
 import luci.sixsixsix.powerampache2.domain.models.Song
+import luci.sixsixsix.powerampache2.domain.models.isSmartPlaylist
 import luci.sixsixsix.powerampache2.domain.models.settings.SortMode
 import luci.sixsixsix.powerampache2.domain.usecase.UserFlowUseCase
 import luci.sixsixsix.powerampache2.domain.usecase.playlists.PlaylistFlow
@@ -63,9 +67,12 @@ import luci.sixsixsix.powerampache2.domain.usecase.settings.ChangeSortModeUseCas
 import luci.sixsixsix.powerampache2.domain.usecase.settings.LocalSettingsFlowUseCase
 import luci.sixsixsix.powerampache2.domain.usecase.settings.ToggleGlobalShuffleUseCase
 import luci.sixsixsix.powerampache2.domain.usecase.songs.IsSongAvailableOfflineUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.songs.OfflineSongsFlow
 import luci.sixsixsix.powerampache2.player.MusicPlaylistManager
 import luci.sixsixsix.powerampache2.presentation.common.songitem.SongWrapper
 import javax.inject.Inject
+import kotlin.collections.map
+import kotlin.collections.toHashSet
 
 @HiltViewModel
 class PlaylistDetailViewModel @Inject constructor(
@@ -80,6 +87,7 @@ class PlaylistDetailViewModel @Inject constructor(
     private val songsFromPlaylistUseCase: SongsFromPlaylistUseCase,
     private val changeSortModeUseCase: ChangeSortModeUseCase,
     private val playlistManager: MusicPlaylistManager,
+    private val offlineSongsFlow: OfflineSongsFlow,
     userFlowUseCase: UserFlowUseCase
 ) : ViewModel() {
     var state by mutableStateOf(PlaylistDetailState())
@@ -124,6 +132,25 @@ class PlaylistDetailViewModel @Inject constructor(
                 }
             }
         }
+
+        viewModelScope.launch {
+            // why drop(1)? OfflineSongsFlow is a state flow, meaning it has an initial value,
+            // we're only interested in changes post loading, in particular downloads and delete.
+            offlineSongsFlow()
+                .drop(1)
+                .map { songs -> playlistStateFlow.value to songs}
+                .filter { (playlist, _) -> playlist.id.isNotBlank() }
+                .map { (playlist, songs) -> playlist to songs.map { it.id }.toHashSet() }
+                //.filter { (playlist, ids) -> state.songs.map { it.song.id }.toHashSet().any { it in ids } }
+                .filter { (playlist, ids) -> ids.size < 10_000 }
+                .distinctUntilChanged()
+                .debounce(300) // avoids rapid-fire refreshes during quick changes in offline songs.
+                .collectLatest { (playlist, ids) ->
+                    L("RefreshFromCache Playlist ${ids.size}")
+                    // smartlists are not stored in the local db, so cannot refresh todo: find a solution
+                    if (!playlist.isSmartPlaylist()) getSongsFromPlaylist(playlist, false)
+                }
+        }
     }
 
     private fun fetchPlaylistSongs(playlist: Playlist) {
@@ -132,7 +159,7 @@ class PlaylistDetailViewModel @Inject constructor(
             is RecentPlaylist -> getRecentSongs(fetchRemote = true)
             is FlaggedPlaylist -> getFlaggedSongs(fetchRemote = true)
             is FrequentPlaylist -> getFrequentSongs(fetchRemote = true)
-            else -> getSongsFromPlaylist(playlistId = playlist, fetchRemote = true)
+            else -> getSongsFromPlaylist(playlist = playlist, fetchRemote = true)
         }
     }
 
@@ -261,9 +288,9 @@ class PlaylistDetailViewModel @Inject constructor(
         } else Pair("", "")
 
 
-    private fun getSongsFromPlaylist(playlistId: Playlist, fetchRemote: Boolean = true) {
+    private fun getSongsFromPlaylist(playlist: Playlist, fetchRemote: Boolean = true) {
         viewModelScope.launch {
-            songsFromPlaylistUseCase(playlistId, fetchRemote)
+            songsFromPlaylistUseCase(playlist, fetchRemote)
                 .collect { result ->
                     when(result) {
                         is Resource.Success -> {

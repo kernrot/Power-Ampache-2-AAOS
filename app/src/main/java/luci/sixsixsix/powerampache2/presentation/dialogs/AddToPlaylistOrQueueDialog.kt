@@ -21,6 +21,8 @@
  */
 package luci.sixsixsix.powerampache2.presentation.dialogs
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +67,8 @@ import luci.sixsixsix.powerampache2.domain.models.Song
 
 import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainEvent
 import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainViewModel
+
+private const val LARGE_LIST_SIZE = 200
 
 val textPaddingVertical = 10.dp
 
@@ -83,6 +88,8 @@ fun AddToPlaylistOrQueueDialog(
     mainViewModel: MainViewModel,
     viewModel: AddToPlaylistOrQueueDialogViewModel
 ) {
+    val context = LocalContext.current.applicationContext
+
     val playlistsState by viewModel.playlistsStateFlow.collectAsState()
 
     var headerBgColour by remember { mutableStateOf(Color.Transparent) }
@@ -101,6 +108,7 @@ fun AddToPlaylistOrQueueDialog(
 
     if (createPlaylistDialogOpen) {
         CreateAddToPlaylist(
+            context = context,
             viewModel = viewModel,
             songs = songs,
             onConfirm = { _, _ ->
@@ -172,7 +180,7 @@ fun AddToPlaylistOrQueueDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    addToPlaylist(viewModel, songs, playlist)
+                                    addToPlaylist(context, viewModel, songs, playlist)
                                     onDismissRequest()
                                 }
                         )
@@ -184,6 +192,7 @@ fun AddToPlaylistOrQueueDialog(
 }
 
 private fun addToPlaylist(
+    context: Context,
     viewModel: AddToPlaylistOrQueueDialogViewModel,
     songs: List<Song>,
     playlist: Playlist
@@ -196,6 +205,10 @@ private fun addToPlaylist(
             )
         )
         else -> {
+            if (songs.size > LARGE_LIST_SIZE) {
+                Toast.makeText(context, R.string.playlist_dialog_add_large, Toast.LENGTH_LONG).show()
+            }
+
             viewModel.onEvent(
                 AddToPlaylistOrQueueDialogEvent.AddSongsToPlaylist(
                     songs = songs,
@@ -206,7 +219,11 @@ private fun addToPlaylist(
     }
 }
 
-private fun addToQueue(mainViewModel: MainViewModel, viewModel: AddToPlaylistOrQueueDialogViewModel, songs: List<Song>) {
+private fun addToQueue(
+    mainViewModel: MainViewModel,
+    viewModel: AddToPlaylistOrQueueDialogViewModel,
+    songs: List<Song>
+) {
     when (songs.size) {
         1 -> mainViewModel.onEvent(MainEvent.OnAddSongToQueue(songs[0]))
         else -> {
@@ -217,6 +234,7 @@ private fun addToQueue(mainViewModel: MainViewModel, viewModel: AddToPlaylistOrQ
 
 @Composable
 private fun CreateAddToPlaylist(
+    context: Context,
     viewModel: AddToPlaylistOrQueueDialogViewModel,
     songs: List<Song>,
     onConfirm: (playlistName: String, playlistType: PlaylistType) -> Unit,
@@ -232,6 +250,9 @@ private fun CreateAddToPlaylist(
                         playlistType = playlistType
                     )
                     else -> {
+                        if (songs.size > LARGE_LIST_SIZE) {
+                            Toast.makeText(context, R.string.playlist_dialog_add_large, Toast.LENGTH_LONG).show()
+                        }
                         AddToPlaylistOrQueueDialogEvent.CreatePlaylistAndAddSongs(
                             songs = songs,
                             playlistName = playlistName,

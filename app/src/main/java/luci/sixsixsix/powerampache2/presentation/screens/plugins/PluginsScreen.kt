@@ -100,7 +100,16 @@ fun PluginsScreenContent(
 
         Text("Enhance Power Ampache 2 with custom plugins.\nAvailable for download via your favorite app store, GitHub Releases, and Telegram.",
             fontSize = 15.sp,
+            lineHeight = 15.sp,
             fontWeight = FontWeight.Medium,
+            modifier = Modifier.fillMaxWidth().padding(8.dp)
+        )
+
+        Text("Plugin rollout will begin in the coming days/weeks; check your favorite store regularly or follow the Telegram group for updates. If you're interested in beta versions of the plugins, they will be released exclusively in the Telegram group.",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.tertiary,
+            lineHeight = 11.sp,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.fillMaxWidth().padding(8.dp)
         )
 

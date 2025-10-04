@@ -21,10 +21,14 @@
  */
 package luci.sixsixsix.powerampache2.data.offlinemode
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
+import luci.sixsixsix.mrlog.L
 import luci.sixsixsix.powerampache2.data.local.MusicDatabase
 import luci.sixsixsix.powerampache2.data.local.entities.toSong
 import luci.sixsixsix.powerampache2.di.OfflineModeDataSource
@@ -41,10 +45,16 @@ class SongsOfflineDataSourceImpl @Inject constructor(
     override val offlineSongsFlow = dao.getCurrentMultiuserIdFlow()
         .flatMapLatest { multiUserId ->
             if (multiUserId == null) emptyFlow()
-            else
-                dao.downloadedSongsFromIdFlow(multiUserId).map { entities ->
-                    entities.map { it.toSong() }
+            else dao.downloadedSongsFromIdFlow(multiUserId)
+                .map { entities -> entities.map { it.toSong() } }
+                //.distinctUntilChanged()
+                //DEBUG: onEach { println("aaaaa emitting downloaded songs ${it.size}") }
+                .retryWhen { cause, attempt ->
+                    L("aaaa Flow failed, retry attempt $attempt due to ${cause.message}")
+                    delay(1000)  // wait before retrying
+                    attempt < 11  // retry up to 11 times
                 }
+                .catch { e -> emit(emptyList()).also { println("aaaaa Caught exception in flow: ${e.message}") } }
     }
 
     override suspend fun getRecentSongs(): List<Song> =

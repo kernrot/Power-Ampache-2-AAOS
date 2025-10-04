@@ -155,6 +155,13 @@ fun MainContentScreen(
     val appName = stringResource(id = R.string.app_name)
     var barTitle by remember { mutableStateOf(appName) }
 
+    // This variable can be passed into subscreen which will handle the creation of the playlist.
+    // For example the offline screen will add offline songs to a playlist, the queue screen will
+    // add the queue, etc..
+    // The button that sets this variable is the add-to-playlist button on the top bar
+    // Check MainContentTopAppBarEvent.OnAddToPlaylistClick -> {
+    var isPlaylistAddDialogOpen = remember { mutableStateOf(false) }
+
     if (isSearchActive.value) {
         MainSearchBar(
             modifier = Modifier.focusRequester(focusRequester),
@@ -170,6 +177,9 @@ fun MainContentScreen(
 
     val offlineSwitchVisible =
         (MainContentMenuItem.toMainContentMenuItem(currentScreen) != MainContentMenuItem.Settings)
+
+    val isOfflineSongsScreen =
+        (MainContentMenuItem.toMainContentMenuItem(currentScreen) == MainContentMenuItem.Offline)
 
     val hideDonationButtons = BuildConfig.HIDE_DONATION || localSettingsState.hideDonationButton
     ModalNavigationDrawer(
@@ -213,6 +223,7 @@ fun MainContentScreen(
                     title = barTitle,
                     isGenreSubScreen = isGenreSubScreen,
                     isChromecastPluginInstalled = false, // force no cast button on main screen (too busy) // mainViewModel.chromecastPluginInstalled(),
+                    showAddToPlaylistBtn = isOfflineSongsScreen,
                     onOfflineModeSwitch = {
                         settingsViewModel.onEvent(SettingsEvent.OnOfflineToggle)
                     },
@@ -239,6 +250,15 @@ fun MainContentScreen(
 
                         MainContentTopAppBarEvent.OnChromecastIconClick ->
                             mainViewModel.onEvent(MainEvent.OnCastPress)
+
+                        MainContentTopAppBarEvent.OnAddToPlaylistClick -> {
+                            // This variable can be passed into subscreen which will handle the
+                            // creation of the playlist. ie. the offline screen will add offline
+                            // songs to a playlist, the queue screen will add the queue, etc..
+                            // Basically you set it here, and you listen to it from whatever screen
+                            // this is passed to.
+                            isPlaylistAddDialogOpen.value = !isPlaylistAddDialogOpen.value
+                        }
                     }
                 }
             },
@@ -255,66 +275,67 @@ fun MainContentScreen(
                 }
             }
         ) {
-               Surface(
-                   modifier = Modifier.padding(
-                       top = it.calculateTopPadding(),
-                       bottom = it.calculateBottomPadding()
-                   )
-               ) {
-                   Column {
-                       AnimatedVisibility(mainViewModel.state.isDownloading,
-                           enter = slideInVertically(initialOffsetY = { dire -> dire / 2 }) + fadeIn(),
-                           exit = slideOutVertically(spring(stiffness = Spring.StiffnessVeryLow))
-                       ) {
-                           DownloadProgressView {
-                               mainViewModel.onEvent(MainEvent.OnStopDownloadSongs)
-                           }
+            Surface(
+               modifier = Modifier.padding(
+                   top = it.calculateTopPadding(),
+                   bottom = it.calculateBottomPadding()
+               )
+           ) {
+               Column {
+                   AnimatedVisibility(mainViewModel.state.isDownloading,
+                       enter = slideInVertically(initialOffsetY = { dire -> dire / 2 }) + fadeIn(),
+                       exit = slideOutVertically(spring(stiffness = Spring.StiffnessVeryLow))
+                   ) {
+                       DownloadProgressView {
+                           mainViewModel.onEvent(MainEvent.OnStopDownloadSongs)
                        }
+                   }
 
-                       when (val menuItem = MainContentMenuItem.toMainContentMenuItem(currentScreen)) {
-                           is MainContentMenuItem.Home -> HomeScreen(
-                               navigator = navigator,
-                               viewModel = homeScreenViewModel,
-                               onArtistPlayPressed = { artist ->
-                                   homeScreenViewModel.fetchSongsFromArtist(artist) { songs ->
-                                       mainViewModel.onEvent(MainEvent.AddSongsToQueueAndPlayShuffled(songs))
-                                   }
+                   when (val menuItem = MainContentMenuItem.toMainContentMenuItem(currentScreen)) {
+                       is MainContentMenuItem.Home -> HomeScreen(
+                           navigator = navigator,
+                           viewModel = homeScreenViewModel,
+                           onArtistPlayPressed = { artist ->
+                               homeScreenViewModel.fetchSongsFromArtist(artist) { songs ->
+                                   mainViewModel.onEvent(MainEvent.AddSongsToQueueAndPlayShuffled(songs))
                                }
-                           ).also { barTitle = appName }
-                           is MainContentMenuItem.Library -> TabbedLibraryView(
-                               navigator = navigator,
-                               pagerState = pagerState,
-                               mainViewModel = mainViewModel
-                           ).also { barTitle = stringResource(id = menuItem.title) }
-                           is MainContentMenuItem.Offline -> OfflineSongsMainContent(
-                               navigator = navigator,
-                               mainViewModel = mainViewModel
-                           ).also { barTitle = stringResource(id = menuItem.title) }
-                           is MainContentMenuItem.Settings -> SettingsScreen(
-                               navigator = navigator,
-                               settingsViewModel = settingsViewModel
-                           ).also { barTitle = stringResource(id = menuItem.title) }
-                           MainContentMenuItem.Logout -> {
-                               // already handled by the drawer header
                            }
-                           MainContentMenuItem.About -> AboutScreen(
-                               navigator = navigator,
-                               settingsViewModel = settingsViewModel
-                           ).also { barTitle = stringResource(id = menuItem.title) }
-                           MainContentMenuItem.Plugins -> PluginsScreen(
-                               navigator = navigator,
-                               settingsViewModel = settingsViewModel
-                           ).also { barTitle = stringResource(id = menuItem.title) }
-                           MainContentMenuItem.Genres -> SearchResultsScreen(
-                               navigator = navigator,
-                               mainViewModel = mainViewModel,
-                               searchViewModel = searchViewModel).also {
-                               barTitle = stringResource(id = menuItem.title)
-                           }
+                       ).also { barTitle = appName }
+                       is MainContentMenuItem.Library -> TabbedLibraryView(
+                           navigator = navigator,
+                           pagerState = pagerState,
+                           mainViewModel = mainViewModel
+                       ).also { barTitle = stringResource(id = menuItem.title) }
+                       is MainContentMenuItem.Offline -> OfflineSongsMainContent(
+                           navigator = navigator,
+                           mainViewModel = mainViewModel,
+                           playlistOrQueueDialogOpen = isPlaylistAddDialogOpen
+                       ).also { barTitle = stringResource(id = menuItem.title) }
+                       is MainContentMenuItem.Settings -> SettingsScreen(
+                           navigator = navigator,
+                           settingsViewModel = settingsViewModel
+                       ).also { barTitle = stringResource(id = menuItem.title) }
+                       MainContentMenuItem.Logout -> {
+                           // already handled by the drawer header
+                       }
+                       MainContentMenuItem.About -> AboutScreen(
+                           navigator = navigator,
+                           settingsViewModel = settingsViewModel
+                       ).also { barTitle = stringResource(id = menuItem.title) }
+                       MainContentMenuItem.Plugins -> PluginsScreen(
+                           navigator = navigator,
+                           settingsViewModel = settingsViewModel
+                       ).also { barTitle = stringResource(id = menuItem.title) }
+                       MainContentMenuItem.Genres -> SearchResultsScreen(
+                           navigator = navigator,
+                           mainViewModel = mainViewModel,
+                           searchViewModel = searchViewModel).also {
+                           barTitle = stringResource(id = menuItem.title)
                        }
                    }
                }
            }
+        }
     }
 }
 

@@ -128,6 +128,8 @@ fun MainViewModel.handleEvent(event: MainEvent, context: Context) {
         }
         is MainEvent.OnDownloadedSongDelete ->
             deleteDownloadedSong(event.song)
+        is MainEvent.OnDownloadedSongListDelete ->
+            deleteDownloadedSongs(event.songs)
         is MainEvent.OnDownloadSongs ->
             downloadSongs(event.songs)
         is MainEvent.OnStopDownloadSongs -> viewModelScope.launch {

@@ -59,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -74,6 +75,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import luci.sixsixsix.powerampache2.BuildConfig
 import luci.sixsixsix.powerampache2.R
 import luci.sixsixsix.powerampache2.common.Constants.IS_AMPACHE_DATA
+import luci.sixsixsix.powerampache2.common.exportAndShareRoomDb
 import luci.sixsixsix.powerampache2.domain.common.Constants
 import luci.sixsixsix.powerampache2.domain.models.settings.PowerAmpTheme
 import luci.sixsixsix.powerampache2.domain.models.ServerInfo
@@ -95,6 +97,7 @@ import luci.sixsixsix.powerampache2.presentation.destinations.DebugLogsScreenDes
 import luci.sixsixsix.powerampache2.presentation.dialogs.EraseConfirmDialog
 import luci.sixsixsix.powerampache2.presentation.screens.settings.components.PlayerSettingsView
 import luci.sixsixsix.powerampache2.presentation.screens.settings.components.SettingsDropDownMenu
+import java.lang.ref.WeakReference
 
 private const val IS_MONO_SWITCH_ENABLED = false
 private const val IS_NORMALIZE_SWITCH_ENABLED = false
@@ -102,7 +105,7 @@ private const val IS_OFFLINE_MODE_SWITCH_ENABLED = true
 private const val IS_SMART_DOWNLOADS_SWITCH_ENABLED = false
 private const val IS_AUTO_UPDATE_ENABLED = true
 private const val IS_EQUALIZER_BTN_ENABLED = true
-private const val MAX_VISIBLE_ITEMS = 15
+private const val MAX_VISIBLE_COLUMS_ITEMS = 25
 
 @Composable
 @Destination
@@ -154,6 +157,8 @@ fun SettingsScreen(
         isAutoCheckUpdatesEnabled = localSettingsState.enableAutoUpdates,
         isOfflineModeEnabled = offlineModeState,
         isDownloadSdCard = localSettingsState.isDownloadsSdCard,
+        targetBufferBytes = playerSettingsState.targetBufferBytes,
+        isPrioritizeTimeOverSizeThresholds = playerSettingsState.prioritizeTimeOverSizeThresholds,
         onThemeSelected = {
             settingsViewModel.onEvent(SettingsEvent.OnThemeChange(it))
         },
@@ -243,7 +248,13 @@ fun SettingsScreen(
         bufferForPlayback = playerSettingsState.bufferForPlayback,
         bufferForPlaybackAfterRebuffer = playerSettingsState.bufferForPlaybackAfterRebuffer,
         cache = playerSettingsState.cacheSizeMb,
-        isUseOkHttpPlayer = playerSettingsState.useOkHttpExoplayer
+        isUseOkHttpPlayer = playerSettingsState.useOkHttpExoplayer,
+        onTargetBufferBytesChange = {
+            settingsViewModel.onPlayerEvent(PlayerSettingsEvent.OnTargetBufferBytesChange(it))
+        },
+        onPrioritizeTimeOverSizeThresholdsChange = {
+            settingsViewModel.onPlayerEvent(PlayerSettingsEvent.OnPrioritizeTimeOverSizeThresholdsChange(it))
+        }
     )
 }
 
@@ -293,6 +304,8 @@ fun SettingsScreenContent(
     bufferForPlayback: Int,
     bufferForPlaybackAfterRebuffer: Int,
     isUseOkHttpPlayer: Boolean,
+    targetBufferBytes: Int,
+    isPrioritizeTimeOverSizeThresholds: Boolean,
     onThemeSelected: (selected: PowerAmpTheme) -> Unit,
     onStreamingQualitySelected: (selected: StreamingQuality) -> Unit,
     onEnableLoggingValueChange: (newValue: Boolean) -> Unit,
@@ -317,6 +330,8 @@ fun SettingsScreenContent(
     onBufferForPlaybackChange: (newValue: Int) -> Unit,
     onBufferForPlaybackAfterRebufferChange: (newValue: Int) -> Unit,
     onUseOkHttpExoPlayer: (newValue: Boolean) -> Unit,
+    onTargetBufferBytesChange: (newValue: Int) -> Unit,
+    onPrioritizeTimeOverSizeThresholdsChange: (newValue: Boolean) -> Unit,
     onResetValuesClick: () -> Unit,
     onKillAppClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -345,7 +360,7 @@ fun SettingsScreenContent(
             .padding(horizontal = dimensionResource(id = R.dimen.settings_padding_horizontal))
             .padding(top = dimensionResource(id = R.dimen.settings_padding_top))
     ) {
-        items(25) { index ->
+        items(MAX_VISIBLE_COLUMS_ITEMS) { index ->
             when(index) {
                 0 -> SettingsHeader()
                 // THEME PICKER
@@ -433,7 +448,11 @@ fun SettingsScreenContent(
                     onKillAppClick = onKillAppClick,
                     onCacheChange = onCacheChange,
                     onUseOkHttpPlayer = onUseOkHttpExoPlayer,
-                    isUseOkHttpPlayer = isUseOkHttpPlayer
+                    isUseOkHttpPlayer = isUseOkHttpPlayer,
+                    targetBufferBytes = targetBufferBytes,
+                    onTargetBufferBytesChange = onTargetBufferBytesChange,
+                    isPrioritizeTimeOverSizeThresholdsChange = isPrioritizeTimeOverSizeThresholds,
+                    onPrioritizeTimeOverSizeThresholdsChange = onPrioritizeTimeOverSizeThresholdsChange
                 )
                 // NORMALIZE VOLUME SWITCH
                 9 -> PowerAmpSwitch(
@@ -548,6 +567,12 @@ fun SettingsScreenContent(
                     trailingIcon = Icons.Default.KeyboardArrowRight,
                     onClick = onEqualizerPress
                 )
+                23 -> if (Constants.config.showSettingsExportDbButton) {
+                    val contextWeak = WeakReference(LocalContext.current)
+                    Button(onClick = { contextWeak.get()?.exportAndShareRoomDb() }) {
+                        Text("Export Internal SQLite db")
+                    }
+                }
                 else -> { }
             }
         }
@@ -744,8 +769,8 @@ fun PreviewSettingsScreen() {
             isExpanded = true,
             isTransparent = false,
             onDonateBmacButtonClick = {},
-            onDonateBtcButtonClick =  {},
-            onDonatePaypalButtonClick =  {}
+            onDonateBtcButtonClick = {},
+            onDonatePaypalButtonClick = {}
         )},
         onAutoCheckUpdatesValueChange = { },
         onCheckUpdatesNowPress = { },
@@ -775,6 +800,10 @@ fun PreviewSettingsScreen() {
         cache = 100,
         isDownloadFavouriteAfterPlayEnabled = true,
         onDownloadFavouriteAfterPlayChange = {},
-        onKillAppClick = {}, isUseOkHttpPlayer = true, onUseOkHttpExoPlayer = {}
+        onKillAppClick = {}, isUseOkHttpPlayer = true, onUseOkHttpExoPlayer = {},
+        onTargetBufferBytesChange = {},
+        onPrioritizeTimeOverSizeThresholdsChange = {},
+        isPrioritizeTimeOverSizeThresholds = false,
+        targetBufferBytes = 3000
     )
 }

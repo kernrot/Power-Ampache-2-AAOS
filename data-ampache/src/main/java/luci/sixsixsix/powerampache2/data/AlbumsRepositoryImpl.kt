@@ -551,10 +551,9 @@ class AlbumsRepositoryImpl @Inject constructor(
 
     private suspend fun isDbAlbumExist(albumId: String) = try {
         albumsDbDataSource.getAlbumFromId(albumId)
-        println("aaaa album exists in db")
         true
     } catch (e: Exception) {
-        println("aaaa album not exists in db ${e.stackTraceToString()}")
+        L("album not exists in db ${e.stackTraceToString()}")
         false
     }
 }

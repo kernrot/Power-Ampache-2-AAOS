@@ -31,4 +31,6 @@ sealed class PlayerSettingsEvent {
     data class OnBufferForPlaybackChange(val newValue: Int): PlayerSettingsEvent()
     data class OnPlayerCacheSizeChange(val newValue: Int): PlayerSettingsEvent()
     data class OnBufferForPlaybackAfterRebufferChange(val newValue: Int): PlayerSettingsEvent()
+    data class OnPrioritizeTimeOverSizeThresholdsChange(val newValue: Boolean): PlayerSettingsEvent()
+    data class OnTargetBufferBytesChange(val newValue: Int): PlayerSettingsEvent()
 }

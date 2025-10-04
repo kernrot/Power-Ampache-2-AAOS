@@ -33,7 +33,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
@@ -54,6 +58,7 @@ import luci.sixsixsix.powerampache2.domain.usecase.settings.LocalSettingsFlowUse
 import luci.sixsixsix.powerampache2.domain.usecase.settings.OfflineModeFlowUseCase
 import luci.sixsixsix.powerampache2.domain.usecase.settings.ToggleGlobalShuffleUseCase
 import luci.sixsixsix.powerampache2.domain.usecase.songs.IsSongAvailableOfflineUseCase
+import luci.sixsixsix.powerampache2.domain.usecase.songs.OfflineSongsFlow
 import luci.sixsixsix.powerampache2.player.MusicPlaylistManager
 import luci.sixsixsix.powerampache2.presentation.common.songitem.SongWrapper
 import javax.inject.Inject
@@ -75,6 +80,7 @@ class AlbumDetailViewModel @Inject constructor(
     private val songsRepository: SongsRepository,
     private val albumsRepository: AlbumsRepository,
     private val playlistManager: MusicPlaylistManager,
+    private val offlineSongsFlow: OfflineSongsFlow
 ) : ViewModel() {
     var state by mutableStateOf(AlbumDetailState())
 
@@ -100,15 +106,36 @@ class AlbumDetailViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
 
     init {
+//        viewModelScope.launch {
+//            playlistManager.downloadedSongFlow.collectLatest { song ->
+//                if(song != null) {
+//                    L("RefreshFromCache")
+//                    // if song belongs to this album, refresh
+//                    if (state.songs.map { it.song }.map { it.mediaId }.contains(song.mediaId)) {
+//                        refreshFromCache()
+//                    }
+//                }
+//            }
+//        }
+
         viewModelScope.launch {
-            playlistManager.downloadedSongFlow.collect { song ->
-                if(song != null) {
-                    L("RefreshFromCache")
-                    // if song belongs to this album, refresh
-                    if (state.songs.map { it.song }.map { it.mediaId }.contains(song.mediaId)) {
-                        onEvent(AlbumDetailEvent.RefreshFromCache)
-                    }
+            // why drop(1)? OfflineSongsFlow is a state flow, meaning it has an initial value,
+            // we're only interested in changes post loading, in particular downloads and delete.
+            offlineSongsFlow()//.map { songs -> songs.map { it.id }.toHashSet() }
+                .drop(1)
+                .map { songs -> albumStateFlow.value.id to songs}
+                .filter { (albumId, _) -> albumId.isNotBlank() }
+                .map { (albumId, songs) ->
+                    // only get songs that belong to the album. Add the ids to a hashset for quick
+                    // comparison for distinctUntilChanged.
+                    songs.filter { it.album.id == albumId }.map { it.id }.toHashSet()
                 }
+                .distinctUntilChanged()
+                //.filter { it.isNotEmpty() }
+                .debounce(300) // avoids rapid-fire refreshes during quick changes in offline songs.
+                .collectLatest { ids ->
+                    L("aaaa RefreshFromCache ${ids.size}")
+                    refreshFromCache()
             }
         }
     }
@@ -124,14 +151,7 @@ class AlbumDetailViewModel @Inject constructor(
             AlbumDetailEvent.OnShareAlbum ->
                 shareAlbum(albumStateFlow.value.id)
             AlbumDetailEvent.OnShuffleAlbum -> { }
-            AlbumDetailEvent.OnFavouriteAlbum ->
-                favouriteAlbum()
-            AlbumDetailEvent.RefreshFromCache -> {
-                L("AlbumDetailEvent.RefreshFromCache", albumStateFlow.value.id)
-                if (!albumStateFlow.value.id.isNullOrBlank()) {
-                    getSongsFromAlbum(albumId = albumStateFlow.value.id, fetchRemote = false)
-                }
-            }
+            AlbumDetailEvent.OnFavouriteAlbum -> favouriteAlbum()
             AlbumDetailEvent.OnShufflePlaylistToggle -> viewModelScope.launch {
                 try {
                     toggleGlobalShuffleUseCase()
@@ -141,6 +161,13 @@ class AlbumDetailViewModel @Inject constructor(
             }
 
             is AlbumDetailEvent.OnNewRating -> rateAlbum(rating = event.rating)
+        }
+    }
+
+    private fun refreshFromCache() {
+        if (!albumStateFlow.value.id.isNullOrBlank()) {
+            L("AlbumDetailEvent.RefreshFromCache", albumStateFlow.value.id)
+            getSongsFromAlbum(albumId = albumStateFlow.value.id, fetchRemote = false)
         }
     }
 

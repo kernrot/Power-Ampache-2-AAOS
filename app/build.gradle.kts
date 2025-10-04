@@ -57,9 +57,9 @@ android {
         applicationId = "luci.sixsixsix.powerampache2"
         minSdk = 28
         targetSdk = 35
-        versionCode = 90
-        versionName = "1.01-84"
-        val versionQuote = "This version is powered by the 23rd prime number summed by other consecutive primes, Bismuth and overall the best year ever"
+        versionCode = 91
+        versionName = "1.01-85"
+        val versionQuote = "This version is powered by Back to the Future and 5/2 * (2*15 + 5 - 1)"
 
         // for the AAOS-Fork
         versionCode = versionCode!! + 10000
@@ -274,6 +274,7 @@ android {
 //}
 
 dependencies {
+    implementation(project(":PowerAmpache2Theme"))
     implementation(project(":domain"))
     implementation(project(":MrLog"))
     implementation(project(":data-ampache"))
@@ -328,7 +329,9 @@ dependencies {
     implementation(libs.media3.common)
     implementation(libs.media3.session)
     implementation(libs.media3.ui)
-// ON DATA LAYER    implementation(libs.media3.datasource.okhttp)
+
+    // SOFTWARE DECODER, reliable but more resources, implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+    // ON DATA LAYER, implementation(libs.media3.datasource.okhttp)
 
     // --- Coil, image-loader --- //
     implementation(libs.coil.compose)

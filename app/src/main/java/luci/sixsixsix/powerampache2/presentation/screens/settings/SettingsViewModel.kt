@@ -92,7 +92,9 @@ class SettingsViewModel @Inject constructor(
         bufferForPlayback = sharedPreferencesManager.bufferForPlaybackMs / 1000,
         bufferForPlaybackAfterRebuffer = sharedPreferencesManager.bufferForPlaybackAfterRebufferMs / 1000,
         useOkHttpExoplayer = sharedPreferencesManager.useOkHttpForExoPlayer,
-        cacheSizeMb = sharedPreferencesManager.cacheSizeMb
+        cacheSizeMb = sharedPreferencesManager.cacheSizeMb,
+        prioritizeTimeOverSizeThresholds = sharedPreferencesManager.prioritizeTimeOverSizeThresholds,
+        targetBufferBytes = sharedPreferencesManager.targetBufferBytes
     )
 
     var playerSettingsStateFlow = MutableStateFlow(playerBuffersInitialState())
@@ -235,6 +237,19 @@ class SettingsViewModel @Inject constructor(
                 sharedPreferencesManager.cacheSizeMb = event.newValue
                 playerSettingsStateFlow.value = playerSettingsStateFlow.value.copy(
                     cacheSizeMb = event.newValue
+                )
+            }
+
+            is PlayerSettingsEvent.OnPrioritizeTimeOverSizeThresholdsChange -> {
+                sharedPreferencesManager.prioritizeTimeOverSizeThresholds = event.newValue
+                playerSettingsStateFlow.value = playerSettingsStateFlow.value.copy(
+                    prioritizeTimeOverSizeThresholds = event.newValue
+                )
+            }
+            is PlayerSettingsEvent.OnTargetBufferBytesChange -> {
+                sharedPreferencesManager.targetBufferBytes = event.newValue
+                playerSettingsStateFlow.value = playerSettingsStateFlow.value.copy(
+                    targetBufferBytes = event.newValue
                 )
             }
         }

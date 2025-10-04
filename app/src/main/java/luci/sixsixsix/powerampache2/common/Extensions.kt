@@ -26,6 +26,8 @@ import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
 import androidx.annotation.ColorInt
 import androidx.annotation.DimenRes
 import androidx.compose.animation.core.animateFloat
@@ -59,6 +61,8 @@ import luci.sixsixsix.powerampache2.domain.common.Constants.PLUGIN_CHROMECAST_AC
 import luci.sixsixsix.powerampache2.domain.common.Constants.PLUGIN_CHROMECAST_ID
 import luci.sixsixsix.powerampache2.domain.models.Song
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import kotlin.math.absoluteValue
 
 val Int.dpTextUnit: TextUnit
@@ -124,6 +128,51 @@ fun Context.exportSong(song: Song, offlineUri: String) {
 fun Context.startCastPluginActivity() = startActivity(Intent()
     .setClassName(PLUGIN_CHROMECAST_ID, PLUGIN_CHROMECAST_ACTIVITY_ID)
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+
+/**
+ * DEBUG export internal sqlite db
+ * TODO: is this the right place for this function?
+ * TODO: db name should be from constants
+ */
+fun Context.exportAndShareRoomDb(dbName: String = "musicdb.db") {
+    // if (!BuildConfig.DEBUG) return
+
+    val dbFile = getDatabasePath(dbName)
+    if (!dbFile.exists()) {
+        Toast.makeText(this, "Database file not found", Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    val exportDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+    if (exportDir?.exists() == false) exportDir.mkdirs()
+
+    val exportedFile = File(exportDir, "$dbName-exported.db")
+
+    try {
+        FileInputStream(dbFile).use { input ->
+            FileOutputStream(exportedFile).use { output ->
+                input.copyTo(output)
+            }
+        }
+
+        val uri = FileProvider.getUriForFile(
+            this,
+            getString(R.string.sharing_provider_authority),
+            exportedFile
+        )
+
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/octet-stream"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        startActivity(Intent.createChooser(shareIntent, "Share database file"))
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(this, "Error exporting DB: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
 
 fun getVersionInfoString(context: Context) = try {
     val pInfo: PackageInfo =

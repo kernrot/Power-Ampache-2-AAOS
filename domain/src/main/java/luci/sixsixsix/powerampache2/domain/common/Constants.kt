@@ -45,10 +45,16 @@ object Constants {
     const val BACK_BUFFER_MAX = 200
     const val PLAYBACK_BUFFER_MAX = 200
     const val PLAYBACK_REBUFFER_MAX = 300
+    const val BUFFER_PRIORITIZE_TIME_OVER_SIZE_THRESHOLD_DEFAULT = true
 
     const val PLAYER_CACHE_SIZE_MB = 100
     const val PLAYER_CACHE_SIZE_MB_MAX = 2000
     const val PLAYER_CACHE_SIZE_MB_MIN = 20
+
+    // PLAYER BUFFER (size)
+    const val BUFFER_TARGET_BYTES = 20 * 1024 * 1024
+    const val PLAYBACK_BUFFER_SIZE_BYTES_MAX = 400 * 1024 * 1024
+    const val PLAYBACK_BUFFER_SIZE_BYTES_MIN = 10 * 1024 * 1024
 
     const val REQUEST_LIMIT_ALBUMS = 140
 

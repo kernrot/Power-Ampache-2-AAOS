@@ -1,0 +1,8 @@
+— [NEW] More fine-tuning music player settings.
+— [Cont'd] Improved performance on queue loading by more than 10X.
+— Bug fixes and improvements.
+— Improved plugin interfaces.
+— Various libraries updates.
+— [NEW] Delete entire downloaded album.
+— [NEW] Add all offline songs to a playlist.
+— Exported Power Ampache Theme to separate module, it's now be available as an open source library to add to any project.

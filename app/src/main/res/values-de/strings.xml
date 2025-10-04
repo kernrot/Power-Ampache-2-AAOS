@@ -180,7 +180,7 @@
     <string name="dialog_deletePlaylist_text">%s löschen?</string>
 
     <string name="settings_downloadsSdCard_title">SD Card für Downloads nutzen</string>
-    <string name="settings_downloadsSdCard_subtitle">Funktioniert, wenn die SD card als System Storage gemountet wurde [EXPERIMENTELL]</string>
+    <string name="settings_downloadsSdCard_subtitle">Funktioniert, wenn die SD card als System Storage gemountet wurde</string>
 
     <!-- SETTINGS PLAYER -->
     <string name="settings_playerAdvancedSettings_title">Erweiterte Einstellungen (App muss neu gestartet werden)</string>
@@ -252,6 +252,17 @@
     <string name="settings_playerCache_subtitle">Amount of disc cache for the player, in MB</string>
     <string name="settings_player_unit_seconds">Seconds</string>
     <string name="settings_player_unit_mb">MB</string>
+    <string name="warning_album_songList_remove_title">REMOVE DOWNLOADED SONGS</string>
+    <string name="warning_album_songList_remove_subtitle">This will remove all downloaded songs from the album. Are you sure you want to proceed?</string>
+    <string name="downloaded_delete_snackbar_songs">Deleted %d songs.</string>
+    <string name="downloaded_delete_snackbar_song">%s deleted from downloads</string>
+    <string name="downloaded_delete_snackbar_song_error">ERROR deleting %s</string>
+    <string name="settings_player_prioritizeTimeOverSizeThresholds_title">Prioritize time over size thresholds</string>
+    <string name="settings_player_prioritizeTimeOverSizeThresholds_subtitle">Sets whether the load control prioritizes buffer time constraints over buffer size constraints. When off the earliest reached threshold (time or space) will honoured</string>
+    <string name="playlist_dialog_add_large">You\'re adding a large number of songs to this playlist. This may take some time to process on the server.</string>
+    <string name="settings_player_unit_bytes">Bytes</string>
+    <string name="settings_playerBufferSizeBytes_title">Target buffer size</string>
+    <string name="settings_playerBufferSizeBytes_subtitle">Sets the target buffer size (If you experience out-of-memory issues, lower this value)</string>
 
     <!-- PLUGINS -->
     <string name="plugin_cast_queueEmpty_warning">Your Queue is Empty</string>

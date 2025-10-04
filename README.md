@@ -35,7 +35,7 @@ Power Ampache 2 is a complete Android Music Streaming App suite, presented in <a
     <tr>
         <th>
             <a target="_blank" href="https://t.me/PowerAmpache">
-    <img width="50" height="50" hspace="20" alt="Telegram badge" src="https://static-00.iconduck.com/assets.00/telegram-icon-512x512-4sztjer8.png">
+    <img width="50" height="50" hspace="20" alt="Telegram badge" src="https://power.ampache.dev/telegram_badge_666.png">
 </a>
         </th>
         <th>
@@ -83,6 +83,11 @@ Power Ampache 2 is a complete Android Music Streaming App suite, presented in <a
 
 F-Droid releases can not upgrade to other releases and it is compiled, signed and distributed uniformly by [F-Droid](https://f-droid.org/docs/FAQ_-_General/).
 Github, PlayStore and Telegram releases are signed by me.
+
+<br>
+<h2> Plugins </h2>
+<p><b>Enhance Power Ampache 2 with custom plugins.</b><br>Available for download via your favorite app store, GitHub Releases, and Telegram.</p>
+<p>Plugin rollout will begin in the coming days/weeks; check your favorite store regularly or follow the Telegram group for updates. If you're interested in beta versions of the plugins, they will be released exclusively in the Telegram group.</p>
 
 <br>
 

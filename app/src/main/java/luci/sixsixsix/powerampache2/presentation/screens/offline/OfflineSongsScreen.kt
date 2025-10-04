@@ -21,6 +21,7 @@
  */
 package luci.sixsixsix.powerampache2.presentation.screens.offline
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,9 +32,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,10 +55,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import luci.sixsixsix.powerampache2.R
@@ -77,6 +81,7 @@ import luci.sixsixsix.powerampache2.presentation.navigation.Ampache2NavGraphs
 import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainEvent
 import luci.sixsixsix.powerampache2.presentation.screens.main.viewmodel.MainViewModel
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Destination(start = false)
@@ -87,7 +92,12 @@ fun OfflineSongsScreen(
     viewModel: OfflineSongsViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-    var playlistsDialogOpen by remember { mutableStateOf(AddToPlaylistOrQueueDialogOpen(false)) }
+
+    // This variable can be passed into subscreen which will handle the creation of the playlist.
+    // For example the offline screen will add offline songs to a playlist, the queue screen will
+    // add the queue, etc..
+    // The button that sets this variable is the add-to-playlist button on the top bar
+    var isPlaylistAddDialogOpen = remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -115,12 +125,11 @@ fun OfflineSongsScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            playlistsDialogOpen =
-                                AddToPlaylistOrQueueDialogOpen(true, viewModel.state.songs)
+                            isPlaylistAddDialogOpen.value = !isPlaylistAddDialogOpen.value
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.PlaylistAdd,
+                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                             contentDescription = "add all songs in queue to playlist"
                         )
                     }
@@ -158,7 +167,7 @@ fun OfflineSongsScreen(
                 mainViewModel = mainViewModel,
                 viewModel = viewModel,
                 modifier = modifier,
-                playlistOrQueueDialogOpen = playlistsDialogOpen
+                playlistOrQueueDialogOpen = isPlaylistAddDialogOpen
             )
         }
     }
@@ -171,12 +180,22 @@ fun OfflineSongsMainContent(
     navigator: DestinationsNavigator? = Ampache2NavGraphs.navigator,
     mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
-    playlistOrQueueDialogOpen: AddToPlaylistOrQueueDialogOpen = AddToPlaylistOrQueueDialogOpen(false),
+    playlistOrQueueDialogOpen: MutableState<Boolean>,
     viewModel: OfflineSongsViewModel = hiltViewModel(),
     addToPlaylistOrQueueDialogViewModel: AddToPlaylistOrQueueDialogViewModel = hiltViewModel()
 ) {
     val state = viewModel.state
-    var playlistsDialogOpen by remember { mutableStateOf(playlistOrQueueDialogOpen) }
+
+    // init the dialog, set false to keep it closed
+    var playlistsDialogOpen by remember { mutableStateOf(AddToPlaylistOrQueueDialogOpen(false)) }
+
+    // react to click on addToPlaylist icon
+    if (playlistOrQueueDialogOpen.value && viewModel.state.songs.isNotEmpty()) {
+        playlistsDialogOpen = AddToPlaylistOrQueueDialogOpen(true, viewModel.state.songs)
+    } else if (playlistOrQueueDialogOpen.value && viewModel.state.songs.isEmpty()) {
+        playlistOrQueueDialogOpen.value = false
+        Toast.makeText(LocalContext.current, R.string.offline_noData_warning, Toast.LENGTH_LONG).show()
+    }
 
     if (playlistsDialogOpen.isOpen) {
         if (playlistsDialogOpen.songs.isNotEmpty()) {
@@ -184,11 +203,13 @@ fun OfflineSongsMainContent(
                 songs = playlistsDialogOpen.songs,
                 onDismissRequest = {
                     playlistsDialogOpen = AddToPlaylistOrQueueDialogOpen(false)
+                    playlistOrQueueDialogOpen.value = false
                 },
                 mainViewModel = mainViewModel,
                 viewModel = addToPlaylistOrQueueDialogViewModel,
                 onCreatePlaylistRequest = {
                     playlistsDialogOpen = AddToPlaylistOrQueueDialogOpen(false)
+                    playlistOrQueueDialogOpen.value = false
                 }
             )
         }
@@ -271,8 +292,6 @@ fun OfflineSongsMainContent(
                         .fillMaxWidth()
                         .clickable {
                             mainViewModel.onEvent(MainEvent.PlaySongAddToQueueTop(song, state.songs))
-//                            viewModel.onEvent(OfflineSongsEvent.OnSongSelected(song))
-//                            mainViewModel.onEvent(MainEvent.Play(song))
                         },
                     enableSwipeToRemove = true,
                     onRemove = { songToRemove ->

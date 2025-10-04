@@ -61,6 +61,8 @@ import luci.sixsixsix.powerampache2.domain.common.Constants.BACK_BUFFER_MAX
 import luci.sixsixsix.powerampache2.domain.common.Constants.MAX_BUFFER_MAX
 import luci.sixsixsix.powerampache2.domain.common.Constants.MIN_BUFFER_MAX
 import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYBACK_BUFFER_MAX
+import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYBACK_BUFFER_SIZE_BYTES_MAX
+import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYBACK_BUFFER_SIZE_BYTES_MIN
 import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYBACK_REBUFFER_MAX
 import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYER_CACHE_SIZE_MB_MAX
 import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYER_CACHE_SIZE_MB_MIN
@@ -77,7 +79,9 @@ fun PlayerSettingsView(
     cache: Int,
     bufferForPlayback: Int,
     bufferForPlaybackAfterRebuffer: Int,
+    targetBufferBytes: Int,
     isUseOkHttpPlayer: Boolean,
+    isPrioritizeTimeOverSizeThresholdsChange: Boolean,
     onBackBufferChange: (newValue: Int) -> Unit,
     onMinBufferChange: (newValue: Int) -> Unit,
     onMaxBufferChange: (newValue: Int) -> Unit,
@@ -85,6 +89,8 @@ fun PlayerSettingsView(
     onBufferForPlaybackChange: (newValue: Int) -> Unit,
     onBufferForPlaybackAfterRebufferChange: (newValue: Int) -> Unit,
     onUseOkHttpPlayer: (newValue: Boolean) -> Unit,
+    onTargetBufferBytesChange: (newValue: Int) -> Unit,
+    onPrioritizeTimeOverSizeThresholdsChange: (newValue: Boolean) -> Unit,
     onResetValuesClick: () -> Unit,
     onKillAppClick: () -> Unit,
 ) {
@@ -93,9 +99,11 @@ fun PlayerSettingsView(
 
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable {
-                showSettings = !showSettings
-            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    showSettings = !showSettings
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextWithSubtitle(
@@ -130,6 +138,15 @@ fun PlayerSettingsView(
 
                     Spacer(Modifier.height(spacerHeight))
 
+                    PlayerBufferSettingSlider(
+                        R.string.settings_maxBuffer_title,
+                        R.string.settings_maxBuffer_subtitle,
+                        10, MAX_BUFFER_MAX,
+                        maxBuffer,
+                        onMaxBufferChange
+                    )
+
+                    Spacer(Modifier.height(spacerHeight))
 
                     PlayerBufferSettingSlider(
                         R.string.settings_minBuffer_title,
@@ -137,16 +154,6 @@ fun PlayerSettingsView(
                         0, MIN_BUFFER_MAX,
                         minBuffer,
                         onMinBufferChange
-                    )
-
-                    Spacer(Modifier.height(spacerHeight))
-
-                    PlayerBufferSettingSlider(
-                        R.string.settings_maxBuffer_title,
-                        R.string.settings_maxBuffer_subtitle,
-                        10, MAX_BUFFER_MAX,
-                        maxBuffer,
-                        onMaxBufferChange
                     )
 
                     Spacer(Modifier.height(spacerHeight))
@@ -188,6 +195,27 @@ fun PlayerSettingsView(
                         cache,
                         onCacheChange,
                         unit = R.string.settings_player_unit_mb
+                    )
+
+                    Spacer(Modifier.height(spacerHeight))
+
+                    PlayerBufferSettingSlider(
+                        R.string.settings_playerBufferSizeBytes_title,
+                        R.string.settings_playerBufferSizeBytes_subtitle,
+                        PLAYBACK_BUFFER_SIZE_BYTES_MIN, PLAYBACK_BUFFER_SIZE_BYTES_MAX,
+                        targetBufferBytes,
+                        onTargetBufferBytesChange,
+                        unit = R.string.settings_player_unit_bytes,
+                        convertBytesToMbInCaption = true
+                    )
+
+                    Spacer(Modifier.height(spacerHeight))
+
+                    PowerAmpSwitch(
+                        title = R.string.settings_player_prioritizeTimeOverSizeThresholds_title,
+                        subtitle = R.string.settings_player_prioritizeTimeOverSizeThresholds_subtitle,
+                        checked = isPrioritizeTimeOverSizeThresholdsChange,
+                        onCheckedChange = onPrioritizeTimeOverSizeThresholdsChange,
                     )
 
                     Spacer(Modifier.height(spacerHeight))
@@ -262,8 +290,20 @@ fun PlayerBufferSettingSlider(
     max: Int,
     sliderValue: Int,
     onValueChange: (newValue: Int) -> Unit,
-    @StringRes unit: Int = R.string.settings_player_unit_seconds
+    @StringRes unit: Int = R.string.settings_player_unit_seconds,
+    convertBytesToMbInCaption: Boolean = false
 ) {
+    val text = if (!convertBytesToMbInCaption) {
+        "$sliderValue ${stringResource(unit)}"
+    } else {
+        val mbValue = try {
+            (sliderValue/1024)/1024
+        } catch (e: Exception) {
+            -1
+        }
+        "$mbValue ${stringResource(R.string.settings_player_unit_mb)} ($sliderValue ${stringResource(unit)})"
+    }
+
     Column {
         TextWithSubtitle(
             title = title,
@@ -271,7 +311,7 @@ fun PlayerBufferSettingSlider(
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            text = "$sliderValue ${stringResource(unit)}",
+            text = text,
             //fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             fontSize = 14.sp,
@@ -294,11 +334,11 @@ fun PlayerSettingsViewPreview() {
         modifier = Modifier,
         backBuffer = 30,
         minBuffer = 30,
-        maxBuffer =  120000,
+        maxBuffer = 120000,
         cache = 100,
         bufferForPlayback = 30,
         bufferForPlaybackAfterRebuffer = 22,
-        onBackBufferChange = { },
+        onBackBufferChange = {},
         onMinBufferChange = {},
         onMaxBufferChange = {},
         onBufferForPlaybackChange = {},
@@ -307,6 +347,10 @@ fun PlayerSettingsViewPreview() {
         onKillAppClick = {},
         isUseOkHttpPlayer = true,
         onUseOkHttpPlayer = {},
-        onCacheChange = {}
+        onCacheChange = {},
+        onTargetBufferBytesChange = {} ,
+        onPrioritizeTimeOverSizeThresholdsChange = {},
+        targetBufferBytes = 3453465,
+        isPrioritizeTimeOverSizeThresholdsChange = false
     )
 }

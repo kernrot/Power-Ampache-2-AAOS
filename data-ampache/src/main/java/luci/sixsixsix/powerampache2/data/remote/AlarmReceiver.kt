@@ -58,7 +58,7 @@ class AlarmReceiver: BroadcastReceiver() {
 
             when(intent?.action) {
                 ACTION_SLEEP_TIMER ->
-                    println("aaaa SLEEP TIMER TRIGGERED ----***------***-----")
+                    L("aaaa SLEEP TIMER TRIGGERED ----***------***-----")
                 ACTION_PING -> performPing()
             }
         } catch (e: Exception) {

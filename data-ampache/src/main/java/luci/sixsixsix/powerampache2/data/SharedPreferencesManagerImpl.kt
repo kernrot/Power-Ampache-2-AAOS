@@ -32,6 +32,8 @@ import luci.sixsixsix.powerampache2.domain.common.Constants.BUFFER_FOR_PLAYBACK_
 import luci.sixsixsix.powerampache2.domain.common.Constants.BUFFER_FOR_PLAYBACK_MS
 import luci.sixsixsix.powerampache2.domain.common.Constants.BUFFER_MAX_MS
 import luci.sixsixsix.powerampache2.domain.common.Constants.BUFFER_MIN_MS
+import luci.sixsixsix.powerampache2.domain.common.Constants.BUFFER_PRIORITIZE_TIME_OVER_SIZE_THRESHOLD_DEFAULT
+import luci.sixsixsix.powerampache2.domain.common.Constants.BUFFER_TARGET_BYTES
 import luci.sixsixsix.powerampache2.domain.common.Constants.PLAYER_CACHE_SIZE_MB
 import luci.sixsixsix.powerampache2.domain.delegates.SharedPreferenceDelegate
 import luci.sixsixsix.powerampache2.domain.utils.SharedPreferencesManager
@@ -41,10 +43,12 @@ import javax.inject.Singleton
 private const val KEY_BACK_BUFFER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.backBuffer"
 private const val KEY_MIN_BUFFER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.minBufferMs"
 private const val KEY_MAX_BUFFER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.maxBufferMs"
+private const val KEY_TARGET_SIZE_BUFFER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.TARGET_SIZE_BUFFER"
 private const val KEY_BUFFER_FOR_PLAYBACK = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.bufferForPlaybackMs"
 private const val KEY_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.bufferForPlaybackAfterRebufferMs"
 private const val KEY_PLAYER_CACHE_SIZE = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.playerCacheSize"
 private const val KEY_ALLOW_ALL_CERTIFICATES = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.alloallcertificates"
+private const val KEY_PRIORITIZE_TIME_BUFFER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.prioritizetimbufferoverspace"
 private const val KEY_USE_OKHTTP_EXOPLAYER = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.useokhttpforexoplayer"
 private const val KEY_INTRO_DIALOG_CONTENT = "luci.sixsixsix.powerampache2.data.KEY_SETTINGS_PREFERENCE.intro.dialog.content"
 
@@ -84,6 +88,14 @@ class SharedPreferencesManagerImpl @Inject constructor(
         get() = getInt(KEY_PLAYER_CACHE_SIZE, PLAYER_CACHE_SIZE_MB)
         set(value) = setInt(KEY_PLAYER_CACHE_SIZE, value)
 
+    override var prioritizeTimeOverSizeThresholds: Boolean
+        get() = getBool(KEY_PRIORITIZE_TIME_BUFFER, BUFFER_PRIORITIZE_TIME_OVER_SIZE_THRESHOLD_DEFAULT)
+        set(value) = setBool(KEY_PRIORITIZE_TIME_BUFFER, value)
+
+    override var targetBufferBytes: Int
+        get() = getInt(KEY_TARGET_SIZE_BUFFER, BUFFER_TARGET_BYTES)
+        set(value) = setInt(KEY_TARGET_SIZE_BUFFER, value)
+
     override var isAllowAllCertificates: Boolean
         get() = getBool(KEY_ALLOW_ALL_CERTIFICATES, false)
         set(value) = setBool(KEY_ALLOW_ALL_CERTIFICATES, value)
@@ -107,5 +119,7 @@ class SharedPreferencesManagerImpl @Inject constructor(
         bufferForPlaybackMs = BUFFER_FOR_PLAYBACK_MS
         bufferForPlaybackAfterRebufferMs = BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
         cacheSizeMb = PLAYER_CACHE_SIZE_MB
+        prioritizeTimeOverSizeThresholds = BUFFER_PRIORITIZE_TIME_OVER_SIZE_THRESHOLD_DEFAULT
+        targetBufferBytes = BUFFER_TARGET_BYTES
     }
 }
